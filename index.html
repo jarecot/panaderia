@@ -1,308 +1,335 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
   <title>Gestor de Recetas de Panadería</title>
   <style>
-    body { font-family: Arial, sans-serif; max-width: 900px; margin: auto; padding: 20px; }
+    body { font-family: Arial, sans-serif; max-width: 1000px; margin: 0 auto; padding: 20px; }
     h1 { text-align: center; }
-    label { display: block; margin-top: 10px; font-weight: bold; }
-    input, select, button { padding: 6px; margin-top: 6px; }
-    .ingrediente { display: flex; gap:8px; margin-bottom: 6px; }
-    .ingrediente input { flex: 1; }
-    #ingredientes { margin-top: 10px; }
-    table { width: 100%; border-collapse: collapse; margin-top: 14px; }
-    th, td { border: 1px solid #ddd; padding: 8px; text-align: center; }
-    th { background: #f4f4f4; }
-    .acciones { display:flex; gap:8px; align-items:center; }
+    label { display:block; margin-top:8px; font-weight:600; }
+    input, textarea, select, button { width:100%; padding:8px; margin-top:6px; box-sizing:border-box; }
+    .row { display:flex; gap:10px; }
+    .row > * { flex:1; }
+    .ingrediente { display:flex; gap:8px; align-items:center; margin-bottom:6px; }
+    .ingrediente input { flex:1; padding:6px; }
+    .smallBtn { width:auto; padding:6px 10px; cursor:pointer; }
+    table { width:100%; border-collapse:collapse; margin-top:12px; }
+    th,td { border:1px solid #ddd; padding:8px; text-align:left; }
+    th { background:#f4f4f4; }
+    .actions { display:flex; gap:8px; margin-top:10px; }
   </style>
 </head>
 <body>
   <h1>Gestor de Recetas de Panadería</h1>
 
-  <label for="recetaSelect">Seleccionar receta:</label>
-  <div class="acciones">
-    <select id="recetaSelect" style="flex:1"></select>
-    <button id="btnCargar">Cargar</button>
-    <button id="btnEliminar">Eliminar</button>
+  <label for="recetaSelect">Seleccionar receta</label>
+  <div class="row actions">
+    <select id="recetaSelect"></select>
+    <button id="btnCargar" class="smallBtn">Cargar</button>
+    <button id="btnEliminar" class="smallBtn">Eliminar</button>
   </div>
 
-  <label for="nombreReceta">Nombre de la receta:</label>
-  <input type="text" id="nombreReceta">
+  <label for="nombreReceta">Nombre de la receta</label>
+  <input id="nombreReceta" type="text" placeholder="Ej. Baguette clásica">
 
-  <label for="pesoTotal">Peso total de la masa (g):</label>
-  <input type="number" id="pesoTotal" value="1000" min="1">
+  <div class="row">
+    <div>
+      <label for="pesoTotal">Peso total de la masa (g)</label>
+      <input id="pesoTotal" type="number" min="1" value="1000">
+    </div>
+    <div>
+      <label>&nbsp;</label>
+      <button id="btnRecalcular" class="smallBtn">Recalcular</button>
+    </div>
+  </div>
 
-  <h2>Ingredientes</h2>
+  <h3>Instrucciones</h3>
+  <label for="instrAmasado">Amasado / Fermentación</label>
+  <textarea id="instrAmasado" rows="3" placeholder="Instrucciones de amasado y fermentación"></textarea>
+
+  <label for="instrHorneado">Horneado</label>
+  <textarea id="instrHorneado" rows="2" placeholder="Instrucciones de horneado"></textarea>
+
+  <h3>Ingredientes (% panadero)</h3>
   <div id="ingredientes"></div>
-  <button id="btnAgregar">Agregar ingrediente</button>
+  <div style="margin-top:8px;">
+    <button id="btnAgregarIngrediente" class="smallBtn">+ Agregar ingrediente</button>
+  </div>
 
-  <h2>Resultado</h2>
+  <h3>Resultado</h3>
   <table>
     <thead>
-      <tr>
-        <th>Ingrediente</th>
-        <th>% Panadero</th>
-        <th>Peso (g)</th>
-      </tr>
+      <tr><th>Ingrediente</th><th>% panadero</th><th>Peso (g)</th></tr>
     </thead>
     <tbody id="tablaIngredientes"></tbody>
+    <tfoot>
+      <tr><th>Total</th><th id="sumPercent">--</th><th id="sumGrams">--</th></tr>
+    </tfoot>
   </table>
 
-  <div style="margin-top:12px;">
-    <button id="btnGuardar">💾 Guardar/Actualizar Receta</button>
+  <div style="margin-top:12px;" class="actions">
+    <button id="btnGuardar" class="smallBtn">💾 Guardar / Actualizar</button>
+    <button id="btnLimpiar" class="smallBtn">Limpiar formulario</button>
   </div>
 
-  <!-- Firebase -->
+  <!-- Firebase + Lógica -->
   <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.14.0/firebase-app.js";
     import {
       getFirestore,
       collection,
-      addDoc,
       getDocs,
-      doc,
+      addDoc,
       setDoc,
+      doc,
       deleteDoc
     } from "https://www.gstatic.com/firebasejs/10.14.0/firebase-firestore.js";
 
-    // === CONFIGURA TUS CREDENCIALES AQUI ===
+    // ================== CONFIG FIREBASE (tu proyecto) ==================
     const firebaseConfig = {
-      apiKey: "TU_API_KEY",
+      apiKey: "AIzaSyAhzdmVFlvtoqMSfIQ6OCbiYdg6s6c95iY",
       authDomain: "recetaspanaderia-b31f2.firebaseapp.com",
       projectId: "recetaspanaderia-b31f2",
-      storageBucket: "recetaspanaderia-b31f2.appspot.com",
-      messagingSenderId: "238611804988",
-      appId: "1:238611804988:web:9d40d52ec6d624f5ea88f7"
+      storageBucket: "recetaspanaderia-b31f2.firebasestorage.app",
+      messagingSenderId: "979143269695",
+      appId: "1:979143269695:web:678dc20bf48fc71700078a"
     };
-    // =======================================
+    // =================================================================
 
     const app = initializeApp(firebaseConfig);
     const db = getFirestore(app);
 
     // DOM
-    const recetaSelect = document.getElementById("recetaSelect");
-    const nombreReceta = document.getElementById("nombreReceta");
-    const pesoTotalInput = document.getElementById("pesoTotal");
-    const ingredientesDiv = document.getElementById("ingredientes");
-    const tablaIngredientes = document.getElementById("tablaIngredientes");
-    const btnAgregar = document.getElementById("btnAgregar");
-    const btnGuardar = document.getElementById("btnGuardar");
-    const btnCargar = document.getElementById("btnCargar");
-    const btnEliminar = document.getElementById("btnEliminar");
+    let recetaSelect, btnCargar, btnEliminar, nombreReceta, pesoTotal, instrAmasado, instrHorneado;
+    let ingredientesDiv, tablaIngredientes, btnAgregarIngrediente, btnGuardar, btnRecalcular, btnLimpiar;
+    let recetas = [], recetaActualId = null;
 
-    // Estado
-    let recetas = [];
-    let recetaActualId = null; // id del doc cuando estamos editando
+    // Ejecuta cuando DOM cargado
+    window.addEventListener('DOMContentLoaded', () => {
+      // bind DOM
+      recetaSelect = document.getElementById('recetaSelect');
+      btnCargar = document.getElementById('btnCargar');
+      btnEliminar = document.getElementById('btnEliminar');
+      nombreReceta = document.getElementById('nombreReceta');
+      pesoTotal = document.getElementById('pesoTotal');
+      instrAmasado = document.getElementById('instrAmasado');
+      instrHorneado = document.getElementById('instrHorneado');
+      ingredientesDiv = document.getElementById('ingredientes');
+      tablaIngredientes = document.getElementById('tablaIngredientes');
+      btnAgregarIngrediente = document.getElementById('btnAgregarIngrediente');
+      btnGuardar = document.getElementById('btnGuardar');
+      btnRecalcular = document.getElementById('btnRecalcular');
+      btnLimpiar = document.getElementById('btnLimpiar');
 
-    // ----- Inicialización -----
-    window.addEventListener('load', cargarRecetas);
-    btnAgregar.addEventListener('click', () => agregarIngrediente());
-    pesoTotalInput.addEventListener('input', calcularPesos);
-    btnCargar.addEventListener('click', cargarReceta);
-    btnGuardar.addEventListener('click', guardarReceta);
-    btnEliminar.addEventListener('click', eliminarReceta);
+      // listeners
+      btnAgregarIngrediente.addEventListener('click', () => addIngredient());
+      btnGuardar.addEventListener('click', guardarReceta);
+      btnCargar.addEventListener('click', cargarReceta);
+      btnEliminar.addEventListener('click', eliminarReceta);
+      btnRecalcular.addEventListener('click', calcularPesos);
+      btnLimpiar.addEventListener('click', limpiarFormulario);
+      recetaSelect.addEventListener('change', () => { /* simplemente seleccionar */ });
 
-    // ----- Funciones Firestore -----
-    async function cargarRecetas() {
-      recetaSelect.innerHTML = "";
-      recetas = [];
-      try {
-        const querySnapshot = await getDocs(collection(db, "recetas"));
-        querySnapshot.forEach((docSnap) => {
-          recetas.push({ id: docSnap.id, ...docSnap.data() });
-        });
-      } catch (err) {
-        console.error("Error cargando recetas:", err);
-        alert("Error cargando recetas. Revisa la consola.");
-        return;
-      }
+      // inicializa
+      cargarRecetas().catch(e => console.error('Error init cargarRecetas:', e));
+    });
 
-      // popular selector
-      const emptyOpt = document.createElement("option");
-      emptyOpt.value = "";
-      emptyOpt.textContent = "-- Selecciona una receta --";
-      recetaSelect.appendChild(emptyOpt);
+    // ---------------- Utiles UI ----------------
+    function escapeHtml(s){ return String(s||'').replaceAll('&','&amp;').replaceAll('<','&lt;').replaceAll('>','&gt;').replaceAll('"','&quot;'); }
 
-      recetas.forEach(r => {
-        const option = document.createElement("option");
-        option.value = r.id;
-        option.textContent = r.nombre || ("Receta " + r.id);
-        recetaSelect.appendChild(option);
-      });
-    }
-
-    // ----- UI: ingredientes dinámicos -----
-    function agregarIngrediente(nombre = "", porcentaje = 0) {
-      const div = document.createElement("div");
-      div.classList.add("ingrediente");
+    function addIngredient(name = '', percent = '') {
+      const div = document.createElement('div');
+      div.className = 'ingrediente';
       div.innerHTML = `
-        <input type="text" placeholder="Ingrediente" value="${escapeHtml(nombre)}">
-        <input type="number" placeholder="% Panadero" value="${porcentaje}" step="0.1" min="0">
-        <button type="button" class="btn-remove">❌</button>
+        <input class="ing-name" type="text" placeholder="Ingrediente" value="${escapeHtml(name)}">
+        <input class="ing-percent" type="number" placeholder="% Panadero" value="${percent}" step="0.1" min="0">
+        <button type="button" class="smallBtn btn-remove">❌</button>
       `;
       ingredientesDiv.appendChild(div);
 
-      // handlers
-      const percentInput = div.querySelector('input[type="number"]');
+      // attach events
+      const percentInput = div.querySelector('.ing-percent');
+      const removeBtn = div.querySelector('.btn-remove');
       percentInput.addEventListener('input', calcularPesos);
-      div.querySelector('.btn-remove').addEventListener('click', () => { div.remove(); calcularPesos(); });
+      removeBtn.addEventListener('click', () => { div.remove(); calcularPesos(); });
 
+      // recalc
       calcularPesos();
     }
 
-    function escapeHtml(s){ return String(s||'').replaceAll('&','&amp;').replaceAll('<','&lt;').replaceAll('>','&gt;').replaceAll('"','&quot;'); }
+    function limpiarFormulario() {
+      recetaActualId = null;
+      nombreReceta.value = '';
+      pesoTotal.value = 1000;
+      instrAmasado.value = '';
+      instrHorneado.value = '';
+      ingredientesDiv.innerHTML = '';
+      tablaIngredientes.innerHTML = '';
+      recetaSelect.value = '';
+    }
 
-    // ----- Lógica panadera corregida -----
-    /**
-     * Regla:
-     * - usuario ingresa pesoTotal (peso final masa)
-     * - se suman todos los % panadero (incluye 100% de harina)
-     * - flourWeight = (pesoTotal * 100) / sumPerc
-     * - cada ingrediente gramos = (porcentaje / 100) * flourWeight
-     * - redondeo a gramos enteros; ajustamos diferencia en harina (si existe) para que suma == pesoTotal (aprox)
-     */
+    // ---------------- Lógica panadera ----------------
     function calcularPesos() {
-      const pesoTotal = parseFloat(pesoTotalInput.value) || 0;
-      const ingDivs = Array.from(ingredientesDiv.querySelectorAll('.ingrediente'));
+      const peso = parseFloat(pesoTotal.value) || 0;
+      const rows = Array.from(ingredientesDiv.querySelectorAll('.ingrediente'));
       tablaIngredientes.innerHTML = '';
 
-      // construir items y sumar %
-      const items = ingDivs.map(div => {
-        const inputs = div.querySelectorAll('input');
-        const nombre = inputs[0].value.trim();
-        const porcentaje = parseFloat(inputs[1].value) || 0;
-        return { nombre, porcentaje, rawWeight: 0, grams: 0 };
+      // crear items
+      const items = rows.map(row => {
+        const nombre = row.querySelector('.ing-name').value.trim();
+        const perc = parseFloat(row.querySelector('.ing-percent').value) || 0;
+        return { nombre, perc, raw:0, grams:0 };
       });
 
-      const sumPerc = items.reduce((s, it) => s + (isFinite(it.porcentaje) ? it.porcentaje : 0), 0);
+      const sumPerc = items.reduce((s,it) => s + (isFinite(it.perc) ? it.perc : 0), 0);
 
-      if (sumPerc <= 0 || pesoTotal <= 0) {
-        // Mostrar 0s si no hay datos válidos
+      // mostrar si inválido
+      if (sumPerc <= 0 || peso <= 0) {
         items.forEach(it => {
-          const row = document.createElement('tr');
-          row.innerHTML = `<td>${escapeHtml(it.nombre)}</td><td>${it.porcentaje.toFixed(2)}%</td><td>0 g</td>`;
-          tablaIngredientes.appendChild(row);
+          const r = document.createElement('tr');
+          r.innerHTML = `<td>${escapeHtml(it.nombre)}</td><td>${(it.perc||0).toFixed(2)}%</td><td>0 g</td>`;
+          tablaIngredientes.appendChild(r);
         });
+        document.getElementById('sumPercent').textContent = sumPerc.toFixed(2) + '%';
+        document.getElementById('sumGrams').textContent = '0 g';
         return;
       }
 
-      // calcular peso de harina
-      const flourWeight = (pesoTotal * 100) / sumPerc; // float
+      // Calcular peso de harina (base 100%)
+      const flourWeight = (peso * 100) / sumPerc; // float
 
-      // calcular pesos sin redondeo
-      items.forEach(it => {
-        it.rawWeight = (it.porcentaje / 100) * flourWeight;
-      });
+      // calcular raw weights
+      items.forEach(it => it.raw = (it.perc/100) * flourWeight);
 
-      // redondear a enteros y sumar
+      // redondear y sumar
       let totalRounded = 0;
-      items.forEach(it => {
-        it.grams = Math.round(it.rawWeight);
-        totalRounded += it.grams;
-      });
+      items.forEach(it => { it.grams = Math.round(it.raw); totalRounded += it.grams; });
 
-      // corregir diferencia por redondeo
-      let delta = Math.round(pesoTotal) - totalRounded; // puede ser positivo o negativo
+      // ajustar diferencia por redondeo al ingrediente de harina (porc == 100) si existe
+      const delta = Math.round(peso) - totalRounded;
       if (delta !== 0) {
-        // preferimos ajustar la harina (porcentaje == 100), si no existe, ajustamos el primer ingrediente
-        let flourIdx = items.findIndex(i => Math.abs(i.porcentaje - 100) < 1e-6);
-        if (flourIdx === -1) flourIdx = 0;
+        let flourIdx = items.findIndex(it => Math.abs(it.perc - 100) < 1e-6);
+        if (flourIdx === -1) {
+          // si no hay exactamente 100, buscar el ingrediente con mayor % (mejor candidato)
+          let maxPerc = -Infinity, idx = 0;
+          items.forEach((it,i) => { if (it.perc > maxPerc) { maxPerc = it.perc; idx=i; }});
+          flourIdx = idx;
+        }
         items[flourIdx].grams += delta;
         totalRounded += delta;
       }
 
-      // render tabla
+      // render tabla y totales
       items.forEach(it => {
-        const row = document.createElement('tr');
-        row.innerHTML = `<td>${escapeHtml(it.nombre)}</td><td>${(isFinite(it.porcentaje)?it.porcentaje.toFixed(2):'0.00')}%</td><td>${it.grams} g</td>`;
-        tablaIngredientes.appendChild(row);
+        const r = document.createElement('tr');
+        r.innerHTML = `<td>${escapeHtml(it.nombre)}</td><td>${(isFinite(it.perc)?it.perc.toFixed(2):'0.00')}%</td><td>${it.grams} g</td>`;
+        tablaIngredientes.appendChild(r);
+      });
+
+      document.getElementById('sumPercent').textContent = sumPerc.toFixed(2) + '%';
+      document.getElementById('sumGrams').textContent = totalRounded + ' g';
+    }
+
+    // ---------------- Firestore: cargar / guardar / eliminar ----------------
+    async function cargarRecetas() {
+      recetaSelect.innerHTML = '';
+      recetas = [];
+      try {
+        const snap = await getDocs(collection(db, "recetas"));
+        snap.forEach(d => recetas.push({ id: d.id, ...d.data() }));
+      } catch (err) {
+        console.error('Error leyendo Firestore:', err);
+        alert('Error leyendo recetas (revisa consola).');
+        return;
+      }
+
+      const empty = document.createElement('option');
+      empty.value = '';
+      empty.textContent = '-- Selecciona una receta --';
+      recetaSelect.appendChild(empty);
+
+      recetas.forEach(r => {
+        const opt = document.createElement('option');
+        opt.value = r.id;
+        opt.textContent = r.nombre || '(sin nombre)';
+        recetaSelect.appendChild(opt);
       });
     }
 
-    // ----- Guardar / Actualizar -----
     async function guardarReceta() {
       const nombre = nombreReceta.value.trim();
-      if (!nombre) { alert("Debes ingresar un nombre para la receta"); return; }
+      if (!nombre) { alert('Escribe un nombre para la receta'); return; }
 
-      const pesoTotal = parseFloat(pesoTotalInput.value) || 0;
-      const ingredientes = [];
-      ingredientesDiv.querySelectorAll('.ingrediente').forEach(div => {
-        const inputs = div.querySelectorAll('input');
-        const nombreIng = inputs[0].value.trim();
-        const porcentaje = parseFloat(inputs[1].value) || 0;
-        if (nombreIng) ingredientes.push({ nombre: nombreIng, porcentaje });
-      });
+      const peso = parseFloat(pesoTotal.value) || 0;
+      const ingredientes = Array.from(ingredientesDiv.querySelectorAll('.ingrediente')).map(div => {
+        return {
+          nombre: div.querySelector('.ing-name').value.trim(),
+          porcentaje: parseFloat(div.querySelector('.ing-percent').value) || 0
+        };
+      }).filter(i => i.nombre);
 
-      if (ingredientes.length === 0) { alert("Agrega al menos un ingrediente"); return; }
-      // guardamos la receta (payload)
-      const recetaData = { nombre, pesoTotal, ingredientes };
+      if (ingredientes.length === 0) { alert('Agrega al menos un ingrediente con nombre.'); return; }
+      const instrucciones = {
+        amasado: instrAmasado.value.trim(),
+        horneado: instrHorneado.value.trim()
+      };
+
+      const payload = { nombre, pesoTotal: peso, ingredientes, instrucciones };
+
+      console.log('Guardando receta (payload):', payload);
 
       try {
         if (recetaActualId) {
-          // actualizar
-          await setDoc(doc(db, "recetas", recetaActualId), recetaData);
-          alert("Receta actualizada ✅");
+          await setDoc(doc(db, 'recetas', recetaActualId), payload);
+          alert('Receta actualizada ✅');
         } else {
-          await addDoc(collection(db, "recetas"), recetaData);
-          alert("Receta guardada ✅");
+          const ref = await addDoc(collection(db, 'recetas'), payload);
+          recetaActualId = ref.id;
+          alert('Receta guardada ✅');
         }
-        recetaActualId = null;
-        limpiarFormulario();
         await cargarRecetas();
+        // seleccionar la receta guardada
+        if (recetaActualId) recetaSelect.value = recetaActualId;
+        calcularPesos();
       } catch (err) {
-        console.error("Error guardando receta:", err);
-        alert("Error guardando receta. Revisa consola.");
+        console.error('Error guardando en Firestore:', err);
+        alert('Error guardando receta (revisa consola).');
       }
     }
 
-    // ----- Cargar formulario desde selección -----
     function cargarReceta() {
       const id = recetaSelect.value;
-      if (!id) { alert("Selecciona una receta"); return; }
-      const receta = recetas.find(r => r.id === id);
-      if (!receta) return;
-      recetaActualId = receta.id;
-      nombreReceta.value = receta.nombre || '';
-      pesoTotalInput.value = receta.pesoTotal || 1000;
+      if (!id) { alert('Selecciona una receta'); return; }
+      const r = recetas.find(x => x.id === id);
+      if (!r) return;
+      recetaActualId = r.id;
+      nombreReceta.value = r.nombre || '';
+      pesoTotal.value = r.pesoTotal || 1000;
+      instrAmasado.value = (r.instrucciones && r.instrucciones.amasado) ? r.instrucciones.amasado : '';
+      instrHorneado.value = (r.instrucciones && r.instrucciones.horneado) ? r.instrucciones.horneado : '';
       ingredientesDiv.innerHTML = '';
-      (receta.ingredientes || []).forEach(ing => agregarIngrediente(ing.nombre, ing.porcentaje));
-      // after adding ingredient rows, calcularPesos already called by agregarIngrediente
+      (r.ingredientes || []).forEach(ing => addIngredient(ing.nombre || ing.name || '', ing.porcentaje || ing.percent || 0));
       calcularPesos();
     }
 
-    // ----- Eliminar (con confirmación que muestra el nombre) -----
     async function eliminarReceta() {
       const id = recetaSelect.value;
-      if (!id) { alert("Selecciona una receta para eliminar"); return; }
-      const receta = recetas.find(r => r.id === id);
-      const nombre = receta ? receta.nombre : id;
-      const ok = confirm(`¿Seguro que deseas eliminar la receta "${nombre}"? Esta acción no se puede deshacer.`);
-      if (!ok) return;
+      if (!id) { alert('Selecciona una receta'); return; }
+      const r = recetas.find(x => x.id === id);
+      const nombre = r ? r.nombre : id;
+      if (!confirm(`¿Seguro que deseas eliminar la receta "${nombre}"? Esta acción no se puede deshacer.`)) return;
       try {
-        await deleteDoc(doc(db, "recetas", id));
+        await deleteDoc(doc(db, 'recetas', id));
         alert(`Receta "${nombre}" eliminada.`);
         recetaActualId = null;
         limpiarFormulario();
         await cargarRecetas();
       } catch (err) {
-        console.error("Error eliminando receta:", err);
-        alert("Error eliminando receta. Revisa la consola.");
+        console.error('Error eliminando receta:', err);
+        alert('Error eliminando receta (revisa consola).');
       }
     }
-
-    // ----- Utiles UI -----
-    function limpiarFormulario() {
-      nombreReceta.value = "";
-      pesoTotalInput.value = 1000;
-      ingredientesDiv.innerHTML = "";
-      tablaIngredientes.innerHTML = "";
-      recetaSelect.value = "";
-    }
-
-    // ----- Helpers -----
-    function escapeHtml(s){ return String(s||'').replaceAll('&','&amp;').replaceAll('<','&lt;').replaceAll('>','&gt;').replaceAll('"','&quot;'); }
 
   </script>
 </body>
