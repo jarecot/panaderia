@@ -5,70 +5,110 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Gestor de Recetas de Panadería</title>
   <style>
-    body {
-      font-family: Arial, sans-serif;
-      max-width: 900px;
-      margin: 0 auto;
-      padding: 20px;
-    }
-    button {
-      margin: 5px;
-      padding: 10px 15px;
-      border: none;
-      border-radius: 6px;
-      cursor: pointer;
-    }
-    .btn-green { background-color: #4CAF50; color: white; }
-    .btn-red { background-color: #f44336; color: white; }
-    ul { list-style: none; padding: 0; }
-    li {
-      padding: 8px;
-      border-bottom: 1px solid #ddd;
-    }
+    body { font-family: Arial, sans-serif; max-width: 800px; margin: 0 auto; padding: 20px; }
+    table { width: 100%; border-collapse: collapse; margin: 10px 0; }
+    th, td { border: 1px solid #ddd; padding: 8px; text-align: left; }
+    th { background-color: #f2f2f2; }
+    input, select, textarea { width: 100%; padding: 5px; margin: 5px 0; }
+    button { padding: 10px; margin: 5px; background: #4CAF50; color: white; border: none; cursor: pointer; border-radius: 5px; }
+    button:hover { background: #45a049; }
+    .modal { display: none; position: fixed; z-index: 1; left: 0; top: 0; width: 100%; height: 100%; overflow: auto; background: rgba(0,0,0,0.4); }
+    .modal-content { background: white; margin: 10% auto; padding: 20px; border: 1px solid #888; width: 80%; max-width: 500px; border-radius: 8px; }
+    .close { color: #aaa; float: right; font-size: 28px; font-weight: bold; cursor: pointer; }
+    .ingredient-row { display: flex; margin: 5px 0; }
+    .ingredient-row input { width: 45%; margin-right: 5%; }
+    .delete-ing { background: #f44336; margin-left: 5%; padding: 5px 10px; border-radius: 5px; }
+    .danger { background: #f44336; }
+    #status { margin: 10px 0; font-size: 0.9em; color: #666; }
   </style>
 </head>
 <body>
   <h1>Gestor de Recetas de Panadería</h1>
 
-  <div>
-    <button class="btn-green" onclick="addNewRecipe()">Agregar Nueva Receta</button>
-    <button class="btn-green" onclick="editSelectedRecipe()">Editar Receta Seleccionada</button>
-    <button class="btn-red" onclick="deleteAllRecipes()">Borrar Todas las Recetas</button>
-  </div>
+  <label for="recipeSelect">Seleccionar Receta:</label>
+  <select id="recipeSelect">
+    <option value="">-- Elige una receta --</option>
+  </select>
+
+  <br><br>
+
+  <label for="flourWeight">Peso de Harina (g):</label>
+  <input type="number" id="flourWeight" value="1000" min="1">
+
+  <h2>Ingredientes</h2>
+  <table id="ingredientsTable">
+    <thead>
+      <tr><th>Ingrediente</th><th>Porcentaje (%)</th><th>Gramos</th></tr>
+    </thead>
+    <tbody></tbody>
+  </table>
+
+  <h2>Instrucciones</h2>
+  <div id="instructions"></div>
+
+  <h2>Tiempos</h2>
+  <div id="times"></div>
+
+  <button onclick="openModal('add')">Agregar Nueva Receta</button>
+  <button onclick="editSelectedRecipe()">Editar Receta Seleccionada</button>
+  <button class="danger" onclick="clearRecipes()">Borrar Todas las Recetas</button>
 
   <p id="status"></p>
 
-  <h2>Listado de Recetas</h2>
-  <ul id="recipe-list"></ul>
+  <!-- Modal -->
+  <div id="recipeModal" class="modal">
+    <div class="modal-content">
+      <span class="close" onclick="closeModal()">&times;</span>
+      <h2 id="modalTitle">Agregar Nueva Receta</h2>
+      <label>Nombre:</label>
+      <input type="text" id="recipeName">
 
-  <!-- Firebase App -->
+      <h3>Ingredientes</h3>
+      <div id="ingredientsList"></div>
+      <button type="button" onclick="addIngredientRow()">Agregar Ingrediente</button>
+
+      <label>Instrucciones:</label>
+      <textarea id="instructionsText" rows="5"></textarea>
+
+      <label>Tiempos (fermentación/horneado):</label>
+      <input type="text" id="timesText" placeholder="Ej: Fermentación: 4h bulk + 12h cold; Horneado: 50min a 230°C">
+
+      <button onclick="saveRecipe()">Guardar Receta</button>
+    </div>
+  </div>
+
+  <!-- Firebase SDK -->
   <script type="module">
-    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
-    import { getFirestore, collection, addDoc, getDocs, deleteDoc, doc } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.14.0/firebase-app.js";
+    import { getFirestore, collection, getDocs, addDoc, updateDoc, deleteDoc, doc } 
+      from "https://www.gstatic.com/firebasejs/10.14.0/firebase-firestore.js";
 
-    // ⚡ Configuración de Firebase (USA LA TUYA REAL AQUÍ)
+    // 🔑 Tus credenciales reales
     const firebaseConfig = {
-      apiKey: "AIzaSyD-TUAPIKEYREAL",
-      authDomain: "tuproyecto.firebaseapp.com",
-      projectId: "tuproyecto",
-      storageBucket: "tuproyecto.appspot.com",
-      messagingSenderId: "1234567890",
-      appId: "1:1234567890:web:abcd1234efgh5678"
+      apiKey: "AIzaSyAhzdmVFlvtoqMSfIQ6OCbiYdg6s6c95iY",
+      authDomain: "recetaspanaderia-b31f2.firebaseapp.com",
+      projectId: "recetaspanaderia-b31f2",
+      storageBucket: "recetaspanaderia-b31f2.firebasestorage.app",
+      messagingSenderId: "979143269695",
+      appId: "1:979143269695:web:678dc20bf48fc71700078a"
     };
 
     const app = initializeApp(firebaseConfig);
     const db = getFirestore(app);
 
+    let recipes = [];
+    let editingIndex = -1;
     const statusEl = document.getElementById("status");
-    const recipeListEl = document.getElementById("recipe-list");
 
-    // Render en la lista
-    function renderRecipes(recipes) {
-      recipeListEl.innerHTML = "";
-      recipes.forEach(recipe => {
-        const li = document.createElement("li");
-        li.textContent = recipe.name || "Receta sin nombre";
-        recipeListEl.appendChild(li);
+    // Render select
+    function renderRecipeSelect() {
+      const select = document.getElementById('recipeSelect');
+      select.innerHTML = '<option value="">-- Elige una receta --</option>';
+      recipes.forEach((recipe, index) => {
+        const option = document.createElement('option');
+        option.value = index;
+        option.textContent = recipe.name;
+        select.appendChild(option);
       });
     }
 
@@ -77,85 +117,197 @@
       localStorage.setItem("cachedRecipes", JSON.stringify(recipes));
     }
 
-    // Cargar desde cache localStorage (rápido)
+    // Cargar desde cache
     function loadFromCache() {
       const cached = localStorage.getItem("cachedRecipes");
       if (cached) {
         try {
-          const recipes = JSON.parse(cached);
-          renderRecipes(recipes);
+          const parsed = JSON.parse(cached);
+          recipes = parsed;
+          renderRecipeSelect();
           statusEl.textContent = "Mostrando recetas cacheadas...";
-        } catch(e) { console.warn("Error parseando cache", e); }
-      }
-    }
-
-    // Cargar recetas con lógica optimizada
-    async function loadRecipes() {
-      const imported = localStorage.getItem("recipesImported") === "true";
-
-      // 1️⃣ Mostrar rápido lo que haya cacheado
-      loadFromCache();
-
-      // 2️⃣ Si no están importadas → importar de recipes.json a Firestore
-      if (!imported) {
-        try {
-          const response = await fetch("recipes.json");
-          const recipes = await response.json();
-
-          for (const recipe of recipes) {
-            await addDoc(collection(db, "recipes"), recipe);
-          }
-
-          localStorage.setItem("recipesImported", "true");
-          cacheRecipes(recipes);
-          renderRecipes(recipes); // mostrar inmediatamente
-          statusEl.textContent = "Recetas importadas desde recipes.json.";
-        } catch (error) {
-          console.error("Error importando recipes.json:", error);
-          statusEl.textContent = "Error importando recetas.";
+        } catch (e) {
+          console.warn("Error parseando cache", e);
         }
       }
-
-      // 3️⃣ Siempre refrescar desde Firestore en segundo plano
-      try {
-        const querySnapshot = await getDocs(collection(db, "recipes"));
-        const recipes = [];
-        querySnapshot.forEach((docSnap) => {
-          recipes.push({ id: docSnap.id, ...docSnap.data() });
-        });
-
-        cacheRecipes(recipes); // actualizar cache
-        renderRecipes(recipes); // reemplazar en pantalla
-        statusEl.textContent = "Recetas sincronizadas desde Firestore.";
-      } catch (error) {
-        console.error("Error cargando recetas desde Firestore:", error);
-        statusEl.textContent = "Error cargando recetas desde Firestore.";
-      }
     }
 
-    // Borrar todas las recetas
-    async function deleteAllRecipes() {
-      const querySnapshot = await getDocs(collection(db, "recipes"));
-      for (const docSnap of querySnapshot.docs) {
-        await deleteDoc(doc(db, "recipes", docSnap.id));
+    // Mostrar receta seleccionada
+    document.getElementById('recipeSelect').addEventListener('change', function() {
+      const index = this.value;
+      if (index === '') return;
+      displayRecipe(recipes[index]);
+    });
+
+    document.getElementById('flourWeight').addEventListener('input', calculateGrams);
+
+    function displayRecipe(recipe) {
+      const tbody = document.querySelector('#ingredientsTable tbody');
+      tbody.innerHTML = '';
+      recipe.ingredients.forEach(ing => {
+        const row = tbody.insertRow();
+        row.insertCell(0).textContent = ing.name;
+        row.insertCell(1).textContent = ing.percent + '%';
+        row.insertCell(2).textContent = (ing.percent / 100 * document.getElementById('flourWeight').value).toFixed(0) + 'g';
+      });
+      document.getElementById('instructions').textContent = recipe.instructions;
+      document.getElementById('times').textContent = recipe.times;
+      calculateGrams();
+    }
+
+    function calculateGrams() {
+      const flourWeight = parseFloat(document.getElementById('flourWeight').value) || 1000;
+      document.querySelectorAll('#ingredientsTable tbody tr').forEach(row => {
+        const percent = parseFloat(row.cells[1].textContent);
+        row.cells[2].textContent = (percent / 100 * flourWeight).toFixed(0) + 'g';
+      });
+    }
+
+    // Modal
+    function openModal(mode, index = -1) {
+      editingIndex = index;
+      const modal = document.getElementById('recipeModal');
+      const title = document.getElementById('modalTitle');
+      if (mode === 'edit' && index >= 0) {
+        title.textContent = 'Editar Receta';
+        const recipe = recipes[index];
+        document.getElementById('recipeName').value = recipe.name;
+        document.getElementById('instructionsText').value = recipe.instructions;
+        document.getElementById('timesText').value = recipe.times;
+        loadIngredientsToModal(recipe.ingredients);
+      } else {
+        title.textContent = 'Agregar Nueva Receta';
+        document.getElementById('recipeName').value = '';
+        document.getElementById('instructionsText').value = '';
+        document.getElementById('timesText').value = '';
+        loadIngredientsToModal([{name: '', percent: 0}]);
+      }
+      modal.style.display = 'block';
+    }
+    function closeModal() { document.getElementById('recipeModal').style.display = 'none'; }
+    function loadIngredientsToModal(ingredients) {
+      const list = document.getElementById('ingredientsList');
+      list.innerHTML = '';
+      ingredients.forEach(ing => addIngredientRow(ing.name, ing.percent));
+    }
+    function addIngredientRow(name = '', percent = 0) {
+      const list = document.getElementById('ingredientsList');
+      const row = document.createElement('div');
+      row.className = 'ingredient-row';
+      row.innerHTML = `
+        <input type="text" placeholder="Ingrediente" value="${name}">
+        <input type="number" placeholder="%" value="${percent}" min="0" step="0.1">
+        <button class="delete-ing" onclick="this.parentElement.remove()">Borrar</button>
+      `;
+      list.appendChild(row);
+    }
+
+    async function saveRecipe() {
+      const name = document.getElementById('recipeName').value.trim();
+      if (!name) return alert('Nombre requerido');
+
+      const ingredients = [];
+      document.querySelectorAll('.ingredient-row').forEach(row => {
+        const nameIn = row.querySelector('input[type="text"]').value.trim();
+        const percent = parseFloat(row.querySelector('input[type="number"]').value) || 0;
+        if (nameIn && percent > 0) ingredients.push({name: nameIn, percent});
+      });
+      if (ingredients.length === 0) return alert('Al menos un ingrediente requerido');
+
+      const recipe = {
+        name,
+        ingredients,
+        instructions: document.getElementById('instructionsText').value,
+        times: document.getElementById('timesText').value
+      };
+
+      if (editingIndex >= 0) {
+        await updateDoc(doc(db, "recipes", recipes[editingIndex].id), recipe);
+      } else {
+        await addDoc(collection(db, "recipes"), recipe);
+      }
+
+      closeModal();
+      loadRecipes();
+    }
+
+    function editSelectedRecipe() {
+      const index = document.getElementById('recipeSelect').value;
+      if (index === '') return alert('Selecciona una receta primero');
+      openModal('edit', parseInt(index));
+    }
+
+    async function clearRecipes() {
+      if (!confirm('¿Borrar todas las recetas?')) return;
+      for (const r of recipes) {
+        await deleteDoc(doc(db, "recipes", r.id));
       }
       localStorage.removeItem("recipesImported");
       localStorage.removeItem("cachedRecipes");
-      recipeListEl.innerHTML = "";
+      recipes = [];
+      renderRecipeSelect();
+      document.querySelector('#ingredientsTable tbody').innerHTML = '';
+      document.getElementById('instructions').textContent = '';
+      document.getElementById('times').textContent = '';
       statusEl.textContent = "Recetas borradas. Se re-importarán de recipes.json al recargar.";
     }
 
-    // Botones (expuestos al DOM)
-    window.deleteAllRecipes = deleteAllRecipes;
-    window.addNewRecipe = function() {
-      alert("Aquí va tu lógica de 'Agregar Nueva Receta'.");
-    }
-    window.editSelectedRecipe = function() {
-      alert("Aquí va tu lógica de 'Editar Receta Seleccionada'.");
+    window.onclick = function(event) {
+      const modal = document.getElementById('recipeModal');
+      if (event.target == modal) closeModal();
+    };
+
+    // Lógica optimizada de carga inicial
+    async function loadRecipes() {
+      const imported = localStorage.getItem("recipesImported") === "true";
+
+      // 1. Mostrar rápido cache
+      loadFromCache();
+
+      // 2. Si nunca se importaron → importar desde recipes.json
+      if (!imported) {
+        try {
+          const response = await fetch("recipes.json");
+          const data = await response.json();
+          for (const recipe of data) {
+            await addDoc(collection(db, "recipes"), recipe);
+          }
+          localStorage.setItem("recipesImported", "true");
+          recipes = data;
+          cacheRecipes(recipes);
+          renderRecipeSelect();
+          statusEl.textContent = "Recetas importadas desde recipes.json.";
+        } catch (error) {
+          console.error("Error importando recipes.json:", error);
+        }
+      }
+
+      // 3. Siempre refrescar desde Firestore en segundo plano
+      try {
+        const querySnapshot = await getDocs(collection(db, "recipes"));
+        const fresh = [];
+        querySnapshot.forEach((docSnap) => {
+          fresh.push({ id: docSnap.id, ...docSnap.data() });
+        });
+        recipes = fresh;
+        cacheRecipes(recipes);
+        renderRecipeSelect();
+        statusEl.textContent = "Recetas sincronizadas desde Firestore.";
+      } catch (error) {
+        console.error("Error cargando desde Firestore:", error);
+      }
     }
 
-    // Ejecutar carga inicial optimizada
+    // Inicializar
     loadRecipes();
+
+    // Exponer funciones al DOM
+    window.openModal = openModal;
+    window.closeModal = closeModal;
+    window.addIngredientRow = addIngredientRow;
+    window.saveRecipe = saveRecipe;
+    window.editSelectedRecipe = editSelectedRecipe;
+    window.clearRecipes = clearRecipes;
   </script>
 </body>
 </html>
