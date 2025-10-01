@@ -18,6 +18,7 @@
         .ingredient-row { display: flex; margin: 5px 0; }
         .ingredient-row input { width: 45%; margin-right: 5%; }
         .delete-ing { background: #f44336; margin-left: 5%; padding: 5px 10px; }
+        .danger { background: #f44336; }
     </style>
 </head>
 <body>
@@ -48,7 +49,8 @@
     <div id="times"></div>
     
     <button onclick="openModal('add')">Agregar Nueva Receta</button>
-    <button onclick="clearRecipes()">Borrar Todas las Recetas</button>
+    <button onclick="editSelectedRecipe()">Editar Receta Seleccionada</button>
+    <button class="danger" onclick="clearRecipes()">Borrar Todas las Recetas</button>
     
     <!-- Modal para agregar/editar -->
     <div id="recipeModal" class="modal">
@@ -73,71 +75,23 @@
     </div>
 
     <script>
-        let recipes = JSON.parse(localStorage.getItem('bakeryRecipes')) || [
-            // Recetas iniciales (simplificadas de fuentes confiables)
-            {
-                name: "Mejor Sourdough (The Perfect Loaf)",
-                ingredients: [
-                    {name: "Harina de trigo (90%)", percent: 90},
-                    {name: "Harina integral (10%)", percent: 10},
-                    {name: "Agua", percent: 85},
-                    {name: "Sal", percent: 1.8},
-                    {name: "Levain (starter)", percent: 16}
-                ],
-                instructions: "1. Construye levain (5h). 2. Autolyse (2h). 3. Mezcla con sal y levain. 4. Bulk fermentation con folds (4h). 5. Pre-shape y shape. 6. Proof overnight (13h cold). 7. Hornea.",
-                times: "Fermentación: 5h levain + 4h bulk + 13h cold; Horneado: 50min (20min steam + 30min) a 230°C."
-            },
-            {
-                name: "Sourdough Diario (Sourdough Brandon)",
-                ingredients: [
-                    {name: "Harina panadera", percent: 90.7},
-                    {name: "Harina integral", percent: 7.2},
-                    {name: "Harina de centeno", percent: 2.1},
-                    {name: "Agua", percent: 80.5},
-                    {name: "Sal", percent: 2.1},
-                    {name: "Starter", percent: 7}
-                ],
-                instructions: "1. Levain (5h). 2. Autolyse (1h). 3. Mezcla con starter y sal. 4. Bulk con coil folds (4-5h). 5. Shape. 6. Cold proof (12-18h). 7. Hornea.",
-                times: "Fermentación: 5h levain + 4-5h bulk + 12-18h cold; Horneado: 40min (20min lid + 20min) a 230°C."
-            },
-            {
-                name: "Sourdough Artesanal (A Beautiful Plate)",
-                ingredients: [
-                    {name: "Harina panadera", percent: 79.5},
-                    {name: "Harina integral", percent: 20.5},
-                    {name: "Agua", percent: 79.5},
-                    {name: "Starter", percent: 20},
-                    {name: "Sal", percent: 2}
-                ],
-                instructions: "1. Autolyse (1-2h). 2. Agrega starter (30min rest). 3. Agrega sal (15min). 4. Bulk con stretch & folds (3.5-4h). 5. Pre-shape y shape. 6. Cold proof (15-16h). 7. Hornea.",
-                times: "Fermentación: 1-2h autolyse + 3.5-4h bulk + 15-16h cold; Horneado: 40-50min (25min lid + 15-25min) a 260°C bajando a 240°C."
-            },
-            {
-                name: "Pan Blanco Crujiente (Serious Eats - Yeasted)",
-                ingredients: [
-                    {name: "Harina todo uso", percent: 100},
-                    {name: "Agua", percent: 70},
-                    {name: "Sal", percent: 2.2},
-                    {name: "Levadura fresca", percent: 1}
-                ],
-                instructions: "1. Mezcla harina y agua (15min-1h rest). 2. Agrega sal y levadura (mezcla 3-5min). 3. Folds y first rise (2h hasta 50% volumen). 4. Divide y shape. 5. Second rise (1-1.5h). 6. Hornea en Dutch oven.",
-                times: "Levaduras: 15min-1h initial + 2h first + 1-1.5h second; Horneado: 45-50min (30min lid + 15-20min) a 260°C bajando a 235°C."
-            },
-            {
-                name: "Pan Básico con Levadura (Severn Bites - Yeasted)",
-                ingredients: [
-                    {name: "Harina", percent: 100},
-                    {name: "Agua", percent: 70},
-                    {name: "Levadura fresca", percent: 1},
-                    {name: "Sal", percent: 1.5}
-                ],
-                instructions: "1. Mezcla todos los ingredientes. 2. Amasa hasta elástico. 3. First rise hasta doble (1-2h). 4. Shape en loaves. 5. Second rise (45min). 6. Hornea con vapor.",
-                times: "Levaduras: 1-2h first + 45min second; Horneado: 30-35min a 220°C."
-            }
-        ];
-        
+        const ADMIN_PASSWORD = "panadero123"; // 🔐 cambia esta clave
+
+        let recipes = JSON.parse(localStorage.getItem('bakeryRecipes')) || [];
         let editingIndex = -1;
         let ingredientCount = 1;
+
+        // Si no hay recetas en localStorage, agregamos iniciales
+        if (recipes.length === 0) {
+            recipes = [
+                { name: "Pan Básico con Levadura", ingredients: [
+                    {name:"Harina",percent:100},
+                    {name:"Agua",percent:70},
+                    {name:"Levadura fresca",percent:1},
+                    {name:"Sal",percent:1.5}
+                ], instructions:"Mezcla, amasa, fermenta, hornea.", times:"2h bulk + 30min horno" }
+            ];
+        }
 
         // Cargar recetas al inicio
         function loadRecipes() {
@@ -156,8 +110,7 @@
         document.getElementById('recipeSelect').addEventListener('change', function() {
             const index = this.value;
             if (index === '') return;
-            const recipe = recipes[index];
-            displayRecipe(recipe);
+            displayRecipe(recipes[index]);
         });
 
         // Recalcular gramos al cambiar peso
@@ -172,11 +125,10 @@
                 row.insertCell(1).textContent = ing.percent + '%';
                 const gramsCell = row.insertCell(2);
                 gramsCell.textContent = (ing.percent / 100 * document.getElementById('flourWeight').value).toFixed(0) + 'g';
-                gramsCell.id = `grams-${ing.name.replace(/\s+/g, '-')}`; // Para recalculo
             });
             document.getElementById('instructions').textContent = recipe.instructions;
             document.getElementById('times').textContent = recipe.times;
-            calculateGrams(); // Inicial
+            calculateGrams();
         }
 
         function calculateGrams() {
@@ -193,7 +145,7 @@
             editingIndex = index;
             const modal = document.getElementById('recipeModal');
             const title = document.getElementById('modalTitle');
-            if (mode === 'edit') {
+            if (mode === 'edit' && index >= 0) {
                 title.textContent = 'Editar Receta';
                 const recipe = recipes[index];
                 document.getElementById('recipeName').value = recipe.name;
@@ -218,24 +170,24 @@
         function loadIngredientsToModal(ingredients) {
             const list = document.getElementById('ingredientsList');
             list.innerHTML = '';
-            ingredients.forEach((ing, idx) => {
-                addIngredientRow(ing.name, ing.percent, idx);
-            });
+            ingredients.forEach(ing => addIngredientRow(ing.name, ing.percent));
         }
 
-        function addIngredientRow(name = '', percent = 0, idx = ingredientCount++) {
+        function addIngredientRow(name = '', percent = 0) {
             const list = document.getElementById('ingredientsList');
             const row = document.createElement('div');
             row.className = 'ingredient-row';
             row.innerHTML = `
-                <input type="text" placeholder="Nombre del ingrediente" value="${name}">
-                <input type="number" placeholder="Porcentaje (%)" value="${percent}" min="0" step="0.1">
+                <input type="text" placeholder="Ingrediente" value="${name}">
+                <input type="number" placeholder="%" value="${percent}" min="0" step="0.1">
                 <button class="delete-ing" onclick="this.parentElement.remove()">Borrar</button>
             `;
             list.appendChild(row);
         }
 
         function saveRecipe() {
+            if (!checkPassword()) return;
+
             const name = document.getElementById('recipeName').value.trim();
             if (!name) return alert('Nombre requerido');
             
@@ -243,9 +195,7 @@
             document.querySelectorAll('.ingredient-row').forEach(row => {
                 const nameIn = row.querySelector('input[type="text"]').value.trim();
                 const percent = parseFloat(row.querySelector('input[type="number"]').value) || 0;
-                if (nameIn && percent > 0) {
-                    ingredients.push({name: nameIn, percent});
-                }
+                if (nameIn && percent > 0) ingredients.push({name: nameIn, percent});
             });
             if (ingredients.length === 0) return alert('Al menos un ingrediente requerido');
             
@@ -264,25 +214,35 @@
             
             loadRecipes();
             closeModal();
-            // Seleccionar la nueva/editada
             document.getElementById('recipeSelect').value = recipes.length - 1;
             displayRecipe(recipes[recipes.length - 1]);
         }
 
+        function editSelectedRecipe() {
+            const index = document.getElementById('recipeSelect').value;
+            if (index === '') return alert('Selecciona una receta primero');
+            openModal('edit', parseInt(index));
+        }
+
         function clearRecipes() {
+            if (!checkPassword()) return;
             if (confirm('¿Borrar todas las recetas?')) {
                 recipes = [];
                 localStorage.removeItem('bakeryRecipes');
                 loadRecipes();
                 document.getElementById('recipeSelect').value = '';
-                document.getElementById('ingredientsTable tbody').innerHTML = '';
+                document.querySelector('#ingredientsTable tbody').innerHTML = '';
                 document.getElementById('instructions').textContent = '';
                 document.getElementById('times').textContent = '';
             }
         }
 
-        // Agregar opción de editar en el select (opcional, puedes agregar botón por receta)
-        // Para simplicidad, usa el modal para agregar; para editar, selecciona y modifica manualmente o agrega lógica extra.
+        function checkPassword() {
+            const input = prompt("Introduce la contraseña para continuar:");
+            if (input === ADMIN_PASSWORD) return true;
+            alert("Contraseña incorrecta");
+            return false;
+        }
 
         // Inicializar
         loadRecipes();
