@@ -6,177 +6,195 @@
   <title>Gestor de Recetas de Panadería</title>
   <style>
     body { font-family: Arial, sans-serif; max-width: 900px; margin: auto; padding: 20px; }
-    h1 { text-align: center; }
-    select, input, textarea, button { margin: 5px 0; padding: 8px; width: 100%; }
-    table { width: 100%; border-collapse: collapse; margin-top: 10px; }
-    th, td { border: 1px solid #ccc; padding: 8px; text-align: left; }
+    h1, h2 { text-align: center; }
+    label { display: block; margin-top: 10px; font-weight: bold; }
+    input, select, button { padding: 5px; margin-top: 5px; }
+    .ingrediente { display: flex; justify-content: space-between; margin-bottom: 5px; }
+    .ingrediente input { width: 45%; }
+    #ingredientes { margin-top: 10px; }
+    table { width: 100%; border-collapse: collapse; margin-top: 20px; }
+    th, td { border: 1px solid #ddd; padding: 8px; text-align: center; }
     th { background: #f4f4f4; }
-    .section { margin-bottom: 20px; }
+    .acciones { display: flex; gap: 10px; margin-top: 10px; }
   </style>
 </head>
 <body>
   <h1>Gestor de Recetas de Panadería</h1>
 
-  <!-- Selección de recetas -->
-  <div class="section">
-    <label for="recipeSelect">Seleccionar Receta:</label>
-    <select id="recipeSelect"></select>
+  <label for="recetaSelect">Seleccionar receta:</label>
+  <div class="acciones">
+    <select id="recetaSelect"></select>
+    <button onclick="cargarReceta()">Cargar</button>
+    <button onclick="eliminarReceta()">Eliminar</button>
   </div>
 
-  <!-- Ajuste de peso total -->
-  <div class="section">
-    <label for="doughWeight">Peso de Masa (g):</label>
-    <input type="number" id="doughWeight" value="1000" min="1" />
-    <button onclick="calculateGrams()">Recalcular Ingredientes</button>
-  </div>
+  <label for="nombreReceta">Nombre de la receta:</label>
+  <input type="text" id="nombreReceta">
 
-  <!-- Tabla de ingredientes -->
-  <div class="section">
-    <table id="ingredientsTable">
-      <thead>
-        <tr><th>Ingrediente</th><th>% Panadero</th><th>Peso (g)</th></tr>
-      </thead>
-      <tbody></tbody>
-    </table>
-  </div>
+  <label for="pesoTotal">Peso total de la masa (g):</label>
+  <input type="number" id="pesoTotal" value="1000" oninput="calcularPesos()">
 
-  <!-- Instrucciones -->
-  <div class="section">
-    <h3>Instrucciones</h3>
-    <p id="instructions"></p>
-  </div>
+  <h2>Ingredientes</h2>
+  <div id="ingredientes"></div>
+  <button onclick="agregarIngrediente()">Agregar ingrediente</button>
 
-  <!-- Tiempos -->
-  <div class="section">
-    <h3>Tiempos</h3>
-    <p id="times"></p>
-  </div>
+  <h2>Resultado</h2>
+  <table>
+    <thead>
+      <tr>
+        <th>Ingrediente</th>
+        <th>% Panadero</th>
+        <th>Peso (g)</th>
+      </tr>
+    </thead>
+    <tbody id="tablaIngredientes"></tbody>
+  </table>
 
-  <!-- Formulario para agregar receta -->
-  <div class="section">
-    <h2>Nueva Receta</h2>
-    <input type="text" id="newRecipeName" placeholder="Nombre de la receta" />
-    <textarea id="newRecipeInstructions" placeholder="Instrucciones"></textarea>
-    <textarea id="newRecipeTimes" placeholder="Tiempos"></textarea>
-    <h4>Ingredientes</h4>
-    <div id="ingredientsList"></div>
-    <button onclick="addIngredient()">Agregar Ingrediente</button>
-    <button onclick="saveRecipe()">Guardar Receta</button>
-  </div>
+  <button onclick="guardarReceta()">💾 Guardar/Actualizar Receta</button>
 
   <!-- Firebase -->
   <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.14.0/firebase-app.js";
-    import { getFirestore, collection, addDoc, getDocs } from "https://www.gstatic.com/firebasejs/10.14.0/firebase-firestore.js";
+    import { getFirestore, collection, addDoc, getDocs, doc, setDoc, deleteDoc } from "https://www.gstatic.com/firebasejs/10.14.0/firebase-firestore.js";
 
-    // ⚠️ Tus credenciales Firebase (no borrar)
     const firebaseConfig = {
-      apiKey: "AIzaSyC6RrF6-gZtpxxFx3G4S0-pm5R5G9L2Ytk",
+      apiKey: "TU_API_KEY",
       authDomain: "recetaspanaderia-b31f2.firebaseapp.com",
       projectId: "recetaspanaderia-b31f2",
       storageBucket: "recetaspanaderia-b31f2.appspot.com",
-      messagingSenderId: "1029384756",
-      appId: "1:1029384756:web:abc123def456"
+      messagingSenderId: "238611804988",
+      appId: "1:238611804988:web:9d40d52ec6d624f5ea88f7"
     };
 
     const app = initializeApp(firebaseConfig);
     const db = getFirestore(app);
 
-    let recipes = [];
+    const recetaSelect = document.getElementById("recetaSelect");
+    const nombreReceta = document.getElementById("nombreReceta");
+    const pesoTotalInput = document.getElementById("pesoTotal");
+    const ingredientesDiv = document.getElementById("ingredientes");
+    const tablaIngredientes = document.getElementById("tablaIngredientes");
 
-    async function loadRecipes() {
-      recipes = [];
-      const snapshot = await getDocs(collection(db, "recipes"));
-      snapshot.forEach(doc => recipes.push({ id: doc.id, ...doc.data() }));
-      populateSelect();
-    }
+    let recetas = [];
+    let recetaActualId = null;
 
-    function populateSelect() {
-      const select = document.getElementById("recipeSelect");
-      select.innerHTML = "<option value=''>--Selecciona--</option>";
-      recipes.forEach((r, i) => {
-        const opt = document.createElement("option");
-        opt.value = i;
-        opt.textContent = r.name;
-        select.appendChild(opt);
+    async function cargarRecetas() {
+      recetaSelect.innerHTML = "";
+      recetas = [];
+      const querySnapshot = await getDocs(collection(db, "recetas"));
+      querySnapshot.forEach((docSnap) => {
+        recetas.push({ id: docSnap.id, ...docSnap.data() });
+      });
+      recetas.forEach(r => {
+        const option = document.createElement("option");
+        option.value = r.id;
+        option.textContent = r.nombre;
+        recetaSelect.appendChild(option);
       });
     }
 
-    function displayRecipe(recipe) {
-      if (!recipe) return;
-      const tbody = document.querySelector('#ingredientsTable tbody');
-      tbody.innerHTML = '';
-
-      const totalDough = parseFloat(document.getElementById('doughWeight').value) || 1000;
-      const sumPerc = (recipe.ingredients || []).reduce((sum, ing) => sum + (parseFloat(ing.percent) || 0), 0);
-      const flourWeight = (totalDough / sumPerc) * 100;
-
-      (recipe.ingredients || []).forEach(ing => {
-        const row = tbody.insertRow();
-        row.insertCell(0).textContent = ing.name;
-        row.insertCell(1).textContent = Number(ing.percent).toString().replace('.', ',') + '%';
-        const grams = (parseFloat(ing.percent) || 0) / 100 * flourWeight;
-        row.insertCell(2).textContent = Math.round(grams) + ' g';
-      });
-
-      document.getElementById('instructions').textContent = recipe.instructions || '';
-      document.getElementById('times').textContent = recipe.times || '';
-    }
-
-    function calculateGrams() {
-      const idx = document.getElementById('recipeSelect').value;
-      if (idx === '') return;
-      displayRecipe(recipes[Number(idx)]);
-    }
-
-    // ===== Agregar nueva receta =====
-    function addIngredient() {
-      const container = document.getElementById('ingredientsList');
-      const div = document.createElement('div');
+    function agregarIngrediente(nombre = "", porcentaje = 0) {
+      const div = document.createElement("div");
+      div.classList.add("ingrediente");
       div.innerHTML = `
-        <input type="text" placeholder="Ingrediente" class="ingName"/>
-        <input type="number" placeholder="% Panadero" class="ingPercent"/>
+        <input type="text" placeholder="Ingrediente" value="${nombre}">
+        <input type="number" placeholder="% Panadero" value="${porcentaje}" oninput="calcularPesos()">
       `;
-      container.appendChild(div);
+      ingredientesDiv.appendChild(div);
+      calcularPesos();
     }
 
-    async function saveRecipe() {
-      const name = document.getElementById('newRecipeName').value.trim();
-      if (!name) return alert("Escribe un nombre para la receta");
-      const instructions = document.getElementById('newRecipeInstructions').value.trim();
-      const times = document.getElementById('newRecipeTimes').value.trim();
+    function calcularPesos() {
+      const pesoTotal = parseFloat(pesoTotalInput.value) || 0;
+      const ingredientesInputs = ingredientesDiv.querySelectorAll(".ingrediente");
+      tablaIngredientes.innerHTML = "";
 
-      const ingNodes = document.querySelectorAll('#ingredientsList div');
-      const ingredients = [];
-      ingNodes.forEach(div => {
-        const ingName = div.querySelector('.ingName').value.trim();
-        const ingPercent = parseFloat(div.querySelector('.ingPercent').value);
-        if (ingName && !isNaN(ingPercent)) {
-          ingredients.push({ name: ingName, percent: ingPercent });
+      ingredientesInputs.forEach(div => {
+        const [nombreInput, porcentajeInput] = div.querySelectorAll("input");
+        const nombre = nombreInput.value;
+        const porcentaje = parseFloat(porcentajeInput.value) || 0;
+        const peso = (pesoTotal * porcentaje) / 100;
+
+        const row = document.createElement("tr");
+        row.innerHTML = `
+          <td>${nombre}</td>
+          <td>${porcentaje.toFixed(2)}%</td>
+          <td>${peso.toFixed(1)} g</td>
+        `;
+        tablaIngredientes.appendChild(row);
+      });
+    }
+
+    async function guardarReceta() {
+      const nombre = nombreReceta.value.trim();
+      if (!nombre) {
+        alert("Debes ingresar un nombre para la receta");
+        return;
+      }
+
+      const pesoTotal = parseFloat(pesoTotalInput.value) || 0;
+      const ingredientes = [];
+      ingredientesDiv.querySelectorAll(".ingrediente").forEach(div => {
+        const [nombreInput, porcentajeInput] = div.querySelectorAll("input");
+        if (nombreInput.value) {
+          ingredientes.push({ nombre: nombreInput.value, porcentaje: parseFloat(porcentajeInput.value) || 0 });
         }
       });
 
-      try {
-        await addDoc(collection(db, "recipes"), { name, instructions, times, ingredients });
-        alert("Receta guardada con éxito");
-        loadRecipes();
-      } catch (e) {
-        console.error("Error guardando receta: ", e);
+      const recetaData = { nombre, pesoTotal, ingredientes };
+
+      if (recetaActualId) {
+        await setDoc(doc(db, "recetas", recetaActualId), recetaData);
+        alert("Receta actualizada con éxito ✅");
+      } else {
+        await addDoc(collection(db, "recetas"), recetaData);
+        alert("Receta guardada con éxito ✅");
       }
+
+      recetaActualId = null;
+      limpiarFormulario();
+      cargarRecetas();
     }
 
-    // Eventos
-    document.getElementById("recipeSelect").addEventListener("change", e => {
-      const idx = e.target.value;
-      if (idx !== '') displayRecipe(recipes[Number(idx)]);
-    });
+    function limpiarFormulario() {
+      nombreReceta.value = "";
+      pesoTotalInput.value = 1000;
+      ingredientesDiv.innerHTML = "";
+      tablaIngredientes.innerHTML = "";
+    }
 
-    window.addIngredient = addIngredient;
-    window.saveRecipe = saveRecipe;
-    window.calculateGrams = calculateGrams;
+    function cargarReceta() {
+      const id = recetaSelect.value;
+      const receta = recetas.find(r => r.id === id);
+      if (!receta) return;
 
-    // Cargar al inicio
-    loadRecipes();
+      recetaActualId = receta.id;
+      nombreReceta.value = receta.nombre;
+      pesoTotalInput.value = receta.pesoTotal;
+      ingredientesDiv.innerHTML = "";
+      receta.ingredientes.forEach(ing => agregarIngrediente(ing.nombre, ing.porcentaje));
+      calcularPesos();
+    }
+
+    async function eliminarReceta() {
+      const id = recetaSelect.value;
+      if (!id) return;
+      if (!confirm("¿Seguro que deseas eliminar esta receta?")) return;
+      await deleteDoc(doc(db, "recetas", id));
+      alert("Receta eliminada ❌");
+      recetaActualId = null;
+      limpiarFormulario();
+      cargarRecetas();
+    }
+
+    // Inicializar
+    window.agregarIngrediente = agregarIngrediente;
+    window.calcularPesos = calcularPesos;
+    window.guardarReceta = guardarReceta;
+    window.cargarReceta = cargarReceta;
+    window.eliminarReceta = eliminarReceta;
+
+    cargarRecetas();
   </script>
 </body>
 </html>
