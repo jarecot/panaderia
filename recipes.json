@@ -1,0 +1,70 @@
+[
+  {
+    "name": "Baguette clásica",
+    "ingredients": [
+      { "name": "Harina panadera", "percent": 100 },
+      { "name": "Agua", "percent": 70 },
+      { "name": "Sal", "percent": 2 },
+      { "name": "Levadura seca", "percent": 1 }
+    ],
+    "instructions": "Mezclar harina, agua; reposar autólisis 30 min; agregar sal y levadura; fermentar hasta doble volumen; formar baguettes; fermentación final; hornear a 220 °C con vapor.",
+    "times": "Fermentación primaria: 1.5-2 h; fermentación final: 45–60 min; horneado: 20-25 min"
+  },
+  {
+    "name": "Ciabatta",
+    "ingredients": [
+      { "name": "Harina panadera", "percent": 100 },
+      { "name": "Agua", "percent": 80 },
+      { "name": "Sal", "percent": 2.5 },
+      { "name": "Levadura seca", "percent": 1 }
+    ],
+    "instructions": "Alta hidratación: mezclar agua y harina; reposo; agregar sal y levadura; plegados durante fermentación; formar sin desgasificar mucho; fermentación final en banetón; hornear con vapor.",
+    "times": "Fermentación primaria: 2-3 h con pliegues; fermentación final: 60-90 min; horneado: 25-30 min"
+  },
+  {
+    "name": "Pan de masa madre clásico",
+    "ingredients": [
+      { "name": "Harina panadera", "percent": 90 },
+      { "name": "Harina integral", "percent": 10 },
+      { "name": "Agua", "percent": 70 },
+      { "name": "Starter (masa madre)", "percent": 20 },
+      { "name": "Sal", "percent": 2 }
+    ],
+    "instructions": "Hacer refresco del starter; autólisis; mezclar starter con masa; plegados en fermentación; fermentación prolongada en frío; dar forma; hornear con vapor.",
+    "times": "Bulk: 4-5 h; fermentación en frío: 12-18 h; horneado: 45-50 min"
+  },
+  {
+    "name": "Pan integral",
+    "ingredients": [
+      { "name": "Harina integral", "percent": 100 },
+      { "name": "Agua", "percent": 75 },
+      { "name": "Sal", "percent": 2 },
+      { "name": "Levadura seca", "percent": 1.2 }
+    ],
+    "instructions": "Mezclar todos los ingredientes; reposo autólisis; amasar; fermentar hasta doble volumen; formar; fermentación final; hornear a 200-210 °C.",
+    "times": "Fermentación: 1.5-2 h; fermentación final: 45 min; horneado: 30-35 min"
+  },
+  {
+    "name": "Pan blanco básico",
+    "ingredients": [
+      { "name": "Harina panadera", "percent": 100 },
+      { "name": "Agua", "percent": 68 },
+      { "name": "Sal", "percent": 2 },
+      { "name": "Levadura seca", "percent": 1 }
+    ],
+    "instructions": "Mezclar harina y agua; reposo; agregar sal y levadura; amasar; fermentar; formar; fermentación final; hornear 200-220 °C con vapor breve.",
+    "times": "Fermentación: 1-1.5 h; fermentación final: 45 min; horneado: 30 min"
+  },
+  {
+    "name": "Pan de masa madre fácil (Gluten Morgen)",
+    "ingredients": [
+      { "name": "Harina panadera (o harina 0000)", "percent": 90 },
+      { "name": "Harina integral", "percent": 10 },
+      { "name": "Agua", "percent": 70 },
+      { "name": "Starter (masa madre)", "percent": 20 },
+      { "name": "Sal", "percent": 2 }
+    ],
+    "instructions": "Mezclar todas las harinas con agua; reposo autólisis; incorporar starter y sal; plegados durante fermentación; formado suave; fermentación final; hornear con vapor.",
+    "times": "Bulk: ~3-4 h; fermentación final: 1-2 h; horneado: 45 min (20 min con tapa + 25 min sin tapa) :contentReference[oaicite:1]{index=1}"
+  }
+]
