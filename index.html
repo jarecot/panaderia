@@ -1,157 +1,103 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Gestor de Recetas de Panadería</title>
   <style>
-    body { font-family: Arial, sans-serif; max-width: 900px; margin: 0 auto; padding: 20px; }
-    table { width: 100%; border-collapse: collapse; margin: 10px 0; }
-    th, td { border: 1px solid #ddd; padding: 8px; text-align: left; }
-    th { background-color: #f2f2f2; }
-    input, select, textarea { width: 100%; padding: 6px; margin: 5px 0; box-sizing: border-box; }
-    button { padding: 8px 12px; margin: 6px 4px; border: none; border-radius: 6px; cursor: pointer; }
-    .btn-green { background:#4CAF50; color:white; }
-    .btn-red { background:#f44336; color:white; }
-    .modal { display:none; position:fixed; z-index:999; left:0; top:0; width:100%; height:100%; background:rgba(0,0,0,0.4); }
-    .modal-content { background:white; margin:6% auto; padding:18px; width:92%; max-width:640px; border-radius:8px; box-shadow:0 6px 20px rgba(0,0,0,0.12); }
-    .close { float:right; font-size:22px; color:#777; cursor:pointer; }
-    .ingredient-row { display:flex; gap:8px; margin:6px 0; align-items:center; }
-    .ingredient-row input[type="text"] { flex:1; }
-    .ingredient-row input[type="number"] { width:120px; }
-    .delete-ing { background:#f44336; color:white; padding:6px 10px; border-radius:6px; }
-    #status { margin-top:8px; color:#444; font-size:0.95rem; }
+    body { font-family: Arial, sans-serif; max-width: 900px; margin: auto; padding: 20px; }
+    h1 { text-align: center; }
+    select, input, textarea, button { margin: 5px 0; padding: 8px; width: 100%; }
+    table { width: 100%; border-collapse: collapse; margin-top: 10px; }
+    th, td { border: 1px solid #ccc; padding: 8px; text-align: left; }
+    th { background: #f4f4f4; }
+    .section { margin-bottom: 20px; }
   </style>
 </head>
 <body>
   <h1>Gestor de Recetas de Panadería</h1>
 
-  <label for="recipeSelect">Seleccionar Receta:</label>
-  <select id="recipeSelect">
-    <option value="">-- Elige una receta --</option>
-  </select>
-
-  <div style="margin-top:10px;">
-    <label for="flourWeight">Peso de Harina (g):</label>
-    <input type="number" id="flourWeight" value="1000" min="1" />
+  <!-- Selección de recetas -->
+  <div class="section">
+    <label for="recipeSelect">Seleccionar Receta:</label>
+    <select id="recipeSelect"></select>
   </div>
 
-  <h2>Ingredientes</h2>
-  <table id="ingredientsTable">
-    <thead>
-      <tr><th>Ingrediente</th><th>Porcentaje (%)</th><th>Gramos</th></tr>
-    </thead>
-    <tbody></tbody>
-  </table>
-
-  <h2>Instrucciones</h2>
-  <div id="instructions"></div>
-
-  <h2>Tiempos</h2>
-  <div id="times"></div>
-
-  <div style="margin-top:12px;">
-    <button class="btn-green" onclick="openModal('add')">Agregar Nueva Receta</button>
-    <button class="btn-green" onclick="editSelectedRecipe()">Editar Receta Seleccionada</button>
-    <button class="btn-red" onclick="clearRecipes()">Borrar Todas las Recetas</button>
+  <!-- Ajuste de peso total -->
+  <div class="section">
+    <label for="doughWeight">Peso de Masa (g):</label>
+    <input type="number" id="doughWeight" value="1000" min="1" />
+    <button onclick="calculateGrams()">Recalcular Ingredientes</button>
   </div>
 
-  <div id="status"></div>
-
-  <!-- Modal -->
-  <div id="recipeModal" class="modal">
-    <div class="modal-content">
-      <span class="close" onclick="closeModal()">&times;</span>
-      <h2 id="modalTitle">Agregar Nueva Receta</h2>
-
-      <label>Nombre:</label>
-      <input type="text" id="recipeName" />
-
-      <h3>Ingredientes</h3>
-      <div id="ingredientsList"></div>
-      <div style="margin:8px 0;">
-        <button type="button" id="addIngBtn" class="btn-green">Agregar Ingrediente</button>
-      </div>
-
-      <label>Instrucciones:</label>
-      <textarea id="instructionsText" rows="5"></textarea>
-
-      <label>Tiempos (fermentación/horneado):</label>
-      <input type="text" id="timesText" placeholder="Ej: Fermentación: 4h bulk + 12h cold; Horneado: 50min a 230°C">
-
-      <div style="margin-top:12px;">
-        <button id="saveBtn" class="btn-green">Guardar Receta</button>
-        <button onclick="closeModal()" style="background:#888;color:white;border-radius:6px;padding:8px 12px;">Cancelar</button>
-      </div>
-    </div>
+  <!-- Tabla de ingredientes -->
+  <div class="section">
+    <table id="ingredientsTable">
+      <thead>
+        <tr><th>Ingrediente</th><th>% Panadero</th><th>Peso (g)</th></tr>
+      </thead>
+      <tbody></tbody>
+    </table>
   </div>
 
-  <!-- Firebase + Lógica -->
+  <!-- Instrucciones -->
+  <div class="section">
+    <h3>Instrucciones</h3>
+    <p id="instructions"></p>
+  </div>
+
+  <!-- Tiempos -->
+  <div class="section">
+    <h3>Tiempos</h3>
+    <p id="times"></p>
+  </div>
+
+  <!-- Formulario para agregar receta -->
+  <div class="section">
+    <h2>Nueva Receta</h2>
+    <input type="text" id="newRecipeName" placeholder="Nombre de la receta" />
+    <textarea id="newRecipeInstructions" placeholder="Instrucciones"></textarea>
+    <textarea id="newRecipeTimes" placeholder="Tiempos"></textarea>
+    <h4>Ingredientes</h4>
+    <div id="ingredientsList"></div>
+    <button onclick="addIngredient()">Agregar Ingrediente</button>
+    <button onclick="saveRecipe()">Guardar Receta</button>
+  </div>
+
+  <!-- Firebase -->
   <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.14.0/firebase-app.js";
-    import {
-      getFirestore,
-      collection,
-      getDocs,
-      addDoc,
-      updateDoc,
-      deleteDoc,
-      doc
-    } from "https://www.gstatic.com/firebasejs/10.14.0/firebase-firestore.js";
+    import { getFirestore, collection, addDoc, getDocs } from "https://www.gstatic.com/firebasejs/10.14.0/firebase-firestore.js";
 
-    // ======= Tu configuración Firebase (la que ya tenías) =======
+    // ⚠️ Tus credenciales Firebase (no borrar)
     const firebaseConfig = {
-      apiKey: "AIzaSyAhzdmVFlvtoqMSfIQ6OCbiYdg6s6c95iY",
+      apiKey: "AIzaSyC6RrF6-gZtpxxFx3G4S0-pm5R5G9L2Ytk",
       authDomain: "recetaspanaderia-b31f2.firebaseapp.com",
       projectId: "recetaspanaderia-b31f2",
-      storageBucket: "recetaspanaderia-b31f2.firebasestorage.app",
-      messagingSenderId: "979143269695",
-      appId: "1:979143269695:web:678dc20bf48fc71700078a"
+      storageBucket: "recetaspanaderia-b31f2.appspot.com",
+      messagingSenderId: "1029384756",
+      appId: "1:1029384756:web:abc123def456"
     };
-    // =========================================================
 
     const app = initializeApp(firebaseConfig);
     const db = getFirestore(app);
 
-    // Estado local
-    let recipes = [];           // array de recetas en memoria (cada item: {id, name, ingredients[], instructions, times})
-    let editingIndex = -1;      // índice en `recipes` que estamos editando (-1 = nuevo)
+    let recipes = [];
 
-    const statusEl = document.getElementById('status');
-
-    function setStatus(msg, isError=false) {
-      statusEl.textContent = msg || '';
-      statusEl.style.color = isError ? '#b00020' : '#333';
+    async function loadRecipes() {
+      recipes = [];
+      const snapshot = await getDocs(collection(db, "recipes"));
+      snapshot.forEach(doc => recipes.push({ id: doc.id, ...doc.data() }));
+      populateSelect();
     }
 
-    // -------- cache local rápido --------
-    function cacheRecipes(list) {
-      try { localStorage.setItem('cachedRecipes', JSON.stringify(list)); } catch(e) {}
-    }
-    function loadCacheToMemory() {
-      try {
-        const raw = localStorage.getItem('cachedRecipes');
-        if (!raw) return false;
-        const parsed = JSON.parse(raw);
-        if (!Array.isArray(parsed)) return false;
-        recipes = parsed;
-        renderRecipeSelect();
-        setStatus('Mostrando recetas cacheadas...');
-        return true;
-      } catch(e) {
-        console.warn('cache parse error', e);
-        return false;
-      }
-    }
-
-    // -------- render UI --------
-    function renderRecipeSelect() {
-      const select = document.getElementById('recipeSelect');
-      select.innerHTML = '<option value="">-- Elige una receta --</option>';
+    function populateSelect() {
+      const select = document.getElementById("recipeSelect");
+      select.innerHTML = "<option value=''>--Selecciona--</option>";
       recipes.forEach((r, i) => {
-        const opt = document.createElement('option');
+        const opt = document.createElement("option");
         opt.value = i;
-        opt.textContent = r.name || ('Receta ' + (i+1));
+        opt.textContent = r.name;
         select.appendChild(opt);
       });
     }
@@ -160,17 +106,17 @@
       if (!recipe) return;
       const tbody = document.querySelector('#ingredientsTable tbody');
       tbody.innerHTML = '';
+
+      const totalDough = parseFloat(document.getElementById('doughWeight').value) || 1000;
+      const sumPerc = (recipe.ingredients || []).reduce((sum, ing) => sum + (parseFloat(ing.percent) || 0), 0);
+      const flourWeight = (totalDough / sumPerc) * 100;
+
       (recipe.ingredients || []).forEach(ing => {
         const row = tbody.insertRow();
-        const nameCell = row.insertCell(0);
-        const percCell = row.insertCell(1);
-        const gramsCell = row.insertCell(2);
-
-        nameCell.textContent = ing.name;
-        percCell.textContent = Number(ing.percent).toString().replace('.', ',') + '%';
-        const flour = parseFloat(document.getElementById('flourWeight').value) || 1000;
-        const grams = (parseFloat(ing.percent) || 0) / 100 * flour;
-        gramsCell.textContent = Math.round(grams) + ' g';
+        row.insertCell(0).textContent = ing.name;
+        row.insertCell(1).textContent = Number(ing.percent).toString().replace('.', ',') + '%';
+        const grams = (parseFloat(ing.percent) || 0) / 100 * flourWeight;
+        row.insertCell(2).textContent = Math.round(grams) + ' g';
       });
 
       document.getElementById('instructions').textContent = recipe.instructions || '';
@@ -178,224 +124,58 @@
     }
 
     function calculateGrams() {
-      const flour = parseFloat(document.getElementById('flourWeight').value) || 1000;
-      document.querySelectorAll('#ingredientsTable tbody tr').forEach(row => {
-        const pText = row.cells[1].textContent || '0';
-        const percent = parseFloat(pText.replace('%','').replace(',','.')) || 0;
-        row.cells[2].textContent = Math.round((percent / 100) * flour) + ' g';
-      });
-    }
-
-    // events
-    document.getElementById('recipeSelect').addEventListener('change', (e) => {
-      const idx = e.target.value;
-      if (idx === '') {
-        // limpiar
-        document.querySelector('#ingredientsTable tbody').innerHTML = '';
-        document.getElementById('instructions').textContent = '';
-        document.getElementById('times').textContent = '';
-        return;
-      }
-      displayRecipe(recipes[Number(idx)]);
-    });
-    document.getElementById('flourWeight').addEventListener('input', calculateGrams);
-
-    // -------- Modal / ingredientes dinámicos --------
-    const modal = document.getElementById('recipeModal');
-    const ingredientsList = document.getElementById('ingredientsList');
-    const addIngBtn = document.getElementById('addIngBtn');
-    const saveBtn = document.getElementById('saveBtn');
-
-    function openModal(mode, index=-1) {
-      editingIndex = index;
-      document.getElementById('modalTitle').textContent = mode === 'edit' ? 'Editar Receta' : 'Agregar Nueva Receta';
-
-      if (mode === 'edit' && index >= 0 && recipes[index]) {
-        const r = recipes[index];
-        document.getElementById('recipeName').value = r.name || '';
-        document.getElementById('instructionsText').value = r.instructions || '';
-        document.getElementById('timesText').value = r.times || '';
-        loadIngredientsToModal(r.ingredients || []);
-      } else {
-        document.getElementById('recipeName').value = '';
-        document.getElementById('instructionsText').value = '';
-        document.getElementById('timesText').value = '';
-        loadIngredientsToModal([{name:'', percent:0}]);
-      }
-
-      modal.style.display = 'block';
-    }
-    function closeModal() { modal.style.display = 'none'; }
-
-    function loadIngredientsToModal(ings) {
-      ingredientsList.innerHTML = '';
-      (ings.length ? ings : [{name:'',percent:0}]).forEach(ing => addIngredientRow(ing.name || '', ing.percent || 0));
-    }
-
-    function addIngredientRow(name = '', percent = 0) {
-      const row = document.createElement('div');
-      row.className = 'ingredient-row';
-
-      const nameInput = document.createElement('input');
-      nameInput.type = 'text';
-      nameInput.placeholder = 'Ingrediente';
-      nameInput.value = name;
-
-      const percentInput = document.createElement('input');
-      percentInput.type = 'number';
-      percentInput.placeholder = '%';
-      percentInput.value = percent;
-      percentInput.min = 0;
-      percentInput.step = 0.1;
-
-      const del = document.createElement('button');
-      del.type = 'button';
-      del.className = 'delete-ing';
-      del.textContent = 'Borrar';
-      del.onclick = () => row.remove();
-
-      row.appendChild(nameInput);
-      row.appendChild(percentInput);
-      row.appendChild(del);
-      ingredientsList.appendChild(row);
-    }
-
-    addIngBtn.addEventListener('click', () => addIngredientRow());
-
-    // -------- Guardar / Editar receta (Firestore) --------
-    async function saveRecipe() {
-      saveBtn.disabled = true;
-      setStatus('Guardando receta...');
-      try {
-        const name = document.getElementById('recipeName').value.trim();
-        if (!name) { alert('Nombre requerido'); saveBtn.disabled = false; return; }
-
-        const ingredients = [];
-        ingredientsList.querySelectorAll('.ingredient-row').forEach(row => {
-          const nameIn = row.querySelector('input[type="text"]').value.trim();
-          const percent = parseFloat(row.querySelector('input[type="number"]').value) || 0;
-          if (nameIn && percent > 0) ingredients.push({ name: nameIn, percent });
-        });
-        if (ingredients.length === 0) { alert('Al menos un ingrediente con porcentaje mayor a 0'); saveBtn.disabled = false; return; }
-
-        const recipeObj = {
-          name,
-          ingredients,
-          instructions: document.getElementById('instructionsText').value || '',
-          times: document.getElementById('timesText').value || ''
-        };
-
-        if (editingIndex >= 0 && recipes[editingIndex] && recipes[editingIndex].id) {
-          // actualizar en Firestore
-          const id = recipes[editingIndex].id;
-          await updateDoc(doc(db, 'recipes', id), recipeObj);
-
-          // actualizar copia local
-          recipes[editingIndex] = { id, ...recipeObj };
-          setStatus('Receta actualizada.');
-        } else {
-          // crear nuevo doc
-          const docRef = await addDoc(collection(db, 'recipes'), recipeObj);
-          recipes.push({ id: docRef.id, ...recipeObj });
-          setStatus('Receta creada.');
-        }
-
-        // actualizar cache y UI
-        cacheRecipes(recipes);
-        renderRecipeSelect();
-
-        // seleccionar la receta nueva/actualizada en el select y mostrarla
-        const newIndex = recipes.findIndex(r => r.name === recipeObj.name && r.ingredients.length === recipeObj.ingredients.length && r.id);
-        if (newIndex >= 0) {
-          document.getElementById('recipeSelect').value = newIndex;
-          displayRecipe(recipes[newIndex]);
-        }
-
-        closeModal();
-      } catch (err) {
-        console.error('Error guardando receta:', err);
-        setStatus('Error guardando receta: ' + (err.message || err), true);
-        alert('Error guardando receta: ' + (err.message || err));
-      } finally {
-        saveBtn.disabled = false;
-      }
-    }
-
-    // Exponer saveBtn listener
-    saveBtn.addEventListener('click', saveRecipe);
-
-    function editSelectedRecipe() {
       const idx = document.getElementById('recipeSelect').value;
-      if (idx === '') { alert('Selecciona una receta primero'); return; }
-      openModal('edit', Number(idx));
+      if (idx === '') return;
+      displayRecipe(recipes[Number(idx)]);
     }
 
-    // -------- Borrar todas las recetas (Firestore) --------
-    async function clearRecipes() {
-      if (!confirm('¿Borrar todas las recetas? Esta acción eliminará los documentos en Firestore.')) return;
-      setStatus('Eliminando todas las recetas...');
-      try {
-        const snap = await getDocs(collection(db, 'recipes'));
-        const ids = [];
-        snap.forEach(d => ids.push(d.id));
-        for (const id of ids) {
-          await deleteDoc(doc(db, 'recipes', id));
+    // ===== Agregar nueva receta =====
+    function addIngredient() {
+      const container = document.getElementById('ingredientsList');
+      const div = document.createElement('div');
+      div.innerHTML = `
+        <input type="text" placeholder="Ingrediente" class="ingName"/>
+        <input type="number" placeholder="% Panadero" class="ingPercent"/>
+      `;
+      container.appendChild(div);
+    }
+
+    async function saveRecipe() {
+      const name = document.getElementById('newRecipeName').value.trim();
+      if (!name) return alert("Escribe un nombre para la receta");
+      const instructions = document.getElementById('newRecipeInstructions').value.trim();
+      const times = document.getElementById('newRecipeTimes').value.trim();
+
+      const ingNodes = document.querySelectorAll('#ingredientsList div');
+      const ingredients = [];
+      ingNodes.forEach(div => {
+        const ingName = div.querySelector('.ingName').value.trim();
+        const ingPercent = parseFloat(div.querySelector('.ingPercent').value);
+        if (ingName && !isNaN(ingPercent)) {
+          ingredients.push({ name: ingName, percent: ingPercent });
         }
-        recipes = [];
-        cacheRecipes(recipes);
-        renderRecipeSelect();
-        document.querySelector('#ingredientsTable tbody').innerHTML = '';
-        document.getElementById('instructions').textContent = '';
-        document.getElementById('times').textContent = '';
-        setStatus('Todas las recetas borradas.');
-      } catch (err) {
-        console.error('Error borrando recetas:', err);
-        setStatus('Error borrando recetas: ' + (err.message || err), true);
-      }
-    }
+      });
 
-    // -------- Carga optimizada (cache rápido + sync Firestore) --------
-    async function loadRecipes() {
-      // 1) Mostrar cache si existe (rápido)
-      loadCacheToMemory();
-
-      // 2) Traer desde Firestore en background y reemplazar
-      setStatus('Sincronizando con Firestore...');
       try {
-        const snap = await getDocs(collection(db, 'recipes'));
-        const fresh = [];
-        snap.forEach(d => {
-          const data = d.data();
-          fresh.push({
-            id: d.id,
-            name: data.name || '',
-            ingredients: data.ingredients || [],
-            instructions: data.instructions || '',
-            times: data.times || ''
-          });
-        });
-        recipes = fresh;
-        cacheRecipes(recipes);
-        renderRecipeSelect();
-        setStatus('Recetas sincronizadas desde Firestore (' + recipes.length + ').');
-      } catch (err) {
-        console.error('Error cargando Firestore:', err);
-        setStatus('Error sincronizando con Firestore. Revisa consola.', true);
+        await addDoc(collection(db, "recipes"), { name, instructions, times, ingredients });
+        alert("Receta guardada con éxito");
+        loadRecipes();
+      } catch (e) {
+        console.error("Error guardando receta: ", e);
       }
     }
 
-    // click fuera del modal para cerrarlo
-    window.onclick = (e) => { if (e.target === modal) closeModal(); };
+    // Eventos
+    document.getElementById("recipeSelect").addEventListener("change", e => {
+      const idx = e.target.value;
+      if (idx !== '') displayRecipe(recipes[Number(idx)]);
+    });
 
-    // Exponer funciones globalmente para que onclick inline (si los dejas) funcione
-    window.openModal = openModal;
-    window.closeModal = closeModal;
-    window.addIngredientRow = addIngredientRow;
+    window.addIngredient = addIngredient;
     window.saveRecipe = saveRecipe;
-    window.editSelectedRecipe = editSelectedRecipe;
-    window.clearRecipes = clearRecipes;
+    window.calculateGrams = calculateGrams;
 
-    // iniciar
+    // Cargar al inicio
     loadRecipes();
   </script>
 </body>
