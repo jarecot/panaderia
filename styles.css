@@ -2,12 +2,12 @@ body {
   font-family: 'Segoe UI', Tahoma, sans-serif;
   margin: 0;
   padding: 0;
-  background: #fff8f0 url('https://www.transparenttextures.com/patterns/white-wall-3.png');
+  background: #fff8f0 url('https://www.transparenttextures.com/patterns/batthern.png');
   color: #333;
 }
 
 header {
-  background: #d18f5d;
+  background: rgb(121, 71, 32);
   color: white;
   padding: 1rem;
   text-align: center;
