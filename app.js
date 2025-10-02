@@ -159,7 +159,11 @@ async function cargarRecetas() {
   recetas = [];
   try {
     const snap = await getDocs(collection(db, "recetas"));
-    snap.forEach(d => recetas.push({ id: d.id, ...d.data() }));
+    console.log("📥 Firestore devolvió:", snap.size, "documentos");
+    snap.forEach(d => {
+      console.log("➡️ Doc:", d.id, d.data());
+      recetas.push({ id: d.id, ...d.data() });
+    });
   } catch (err) {
     console.error('Error leyendo Firestore:', err);
     alert('Error leyendo recetas (revisa consola).');
@@ -170,6 +174,10 @@ async function cargarRecetas() {
   empty.value = '';
   empty.textContent = '-- Selecciona una receta --';
   recetaSelect.appendChild(empty);
+
+  if (recetas.length === 0) {
+    console.warn("⚠️ No hay recetas guardadas en Firestore todavía");
+  }
 
   recetas.forEach(r => {
     const opt = document.createElement('option');
@@ -289,4 +297,3 @@ function exportarPDF() {
 
   docPdf.save(`${nombreReceta.value}.pdf`);
 }
-
