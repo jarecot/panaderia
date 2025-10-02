@@ -28,7 +28,7 @@ const btnGuardar = document.getElementById("btnGuardar");
 const btnEliminar = document.getElementById("btnEliminar");
 const btnExportar = document.getElementById("btnExportar");
 const btnLimpiar = document.getElementById("btnLimpiar");
-const btnRecalcular = document.getElementById("btnRecalcular"); // 🔹 asegúrate de tener este botón en tu HTML
+const btnRecalcular = document.getElementById("btnRecalcular");
 
 const ingredientesDiv = document.getElementById("ingredientes");
 const tablaIngredientes = document.getElementById("tablaIngredientes");
@@ -37,7 +37,7 @@ const sumGramsEl = document.getElementById("sumGrams");
 let ingredientes = [];
 let recetaIdActual = null;
 
-// --- Función: recalcular pesos (panadería real) ---
+// --- Función: recalcular pesos ---
 function calcularPesos() {
   const pesoTotal = parseFloat(pesoTotalInput.value) || 0;
   tablaIngredientes.innerHTML = "";
@@ -53,15 +53,12 @@ function calcularPesos() {
     return;
   }
 
-  // Harina base proporcional
   const flourWeight = (pesoTotal * 100) / sumPerc;
 
-  // Calcular gramos crudos
   ingredientes.forEach(ing => {
     ing._raw = (parseFloat(ing.porcentaje) || 0) / 100 * flourWeight;
   });
 
-  // Redondear y ajustar
   let totalRounded = 0;
   ingredientes.forEach(ing => {
     ing._grams = Math.round(ing._raw);
@@ -73,8 +70,8 @@ function calcularPesos() {
     let flourIdx = ingredientes.findIndex(it => Math.abs(it.porcentaje - 100) < 1e-6);
     if (flourIdx === -1) {
       let maxPerc = -Infinity, idx = 0;
-      ingredientes.forEach((it,i) => {
-        if (it.porcentaje > maxPerc) { maxPerc = it.porcentaje; idx=i; }
+      ingredientes.forEach((it, i) => {
+        if (it.porcentaje > maxPerc) { maxPerc = it.porcentaje; idx = i; }
       });
       flourIdx = idx;
     }
@@ -82,7 +79,6 @@ function calcularPesos() {
     totalRounded += delta;
   }
 
-  // Render tabla
   ingredientes.forEach(ing => {
     const row = document.createElement("tr");
     row.innerHTML = `
@@ -102,7 +98,7 @@ function addIngredient(nombre = "Ingrediente", porcentaje = 0) {
   renderIngredientes();
 }
 
-// --- Renderizar ingredientes en inputs ---
+// --- Renderizar ingredientes ---
 function renderIngredientes() {
   ingredientesDiv.innerHTML = "";
   ingredientes.forEach((ing, idx) => {
@@ -136,7 +132,7 @@ async function guardarReceta() {
   await cargarRecetas();
 }
 
-// --- Cargar lista de recetas ---
+// --- Cargar recetas ---
 async function cargarRecetas() {
   recetaSelect.innerHTML = `<option value="">-- Selecciona una receta --</option>`;
   const snapshot = await getDocs(collection(db, "recetas"));
@@ -189,19 +185,19 @@ function exportarPDF() {
   const { jsPDF } = window.jspdf;
   const doc = new jsPDF();
 
+  // --- Título ---
   doc.setFontSize(16);
+  doc.setFont("helvetica", "bold");
   doc.text(nombreRecetaInput.value || "Receta sin nombre", 14, 20);
 
-  doc.setFontSize(12);
-  doc.text("Instrucciones:", 14, 35);
-  doc.setFontSize(10);
+  // --- Peso total ---
+  if (pesoTotalInput.value) {
+    doc.setFontSize(12);
+    doc.setFont("helvetica", "normal");
+    doc.text(`Peso total: ${pesoTotalInput.value} g`, 14, 30);
+  }
 
-  const instrucciones = 
-    `Amasado / Fermentación:\n${instrAmasadoInput.value || "—"}\n\n` +
-    `Horneado:\n${instrHorneadoInput.value || "—"}`;
-  doc.text(instrucciones, 14, 42, { maxWidth: 180 });
-
-  // 🔹 Usar los mismos gramos que la tabla en pantalla
+  // --- Tabla ingredientes ---
   const body = ingredientes.map(i => [
     i.nombre,
     (parseFloat(i.porcentaje) || 0).toFixed(2) + "%",
@@ -209,15 +205,30 @@ function exportarPDF() {
   ]);
 
   doc.autoTable({
-    startY: 80,
+    startY: 40,
     head: [["Ingrediente", "% Panadero", "Peso (g)"]],
-    body
+    body,
+    theme: "grid",
+    headStyles: { fillColor: [41, 128, 185], textColor: 255, fontStyle: "bold" },
+    bodyStyles: { fontSize: 11 }
   });
 
-  // 🔹 Total igual a la tabla
   const total = ingredientes.reduce((acc, i) => acc + (i._grams || 0), 0);
   doc.setFontSize(12);
   doc.text(`Total: ${total} g`, 14, doc.lastAutoTable.finalY + 10);
+
+  // --- Instrucciones ---
+  let y = doc.lastAutoTable.finalY + 25;
+  doc.setFontSize(12);
+  doc.setFont("helvetica", "bold");
+  doc.text("Instrucciones:", 14, y);
+
+  doc.setFont("helvetica", "normal");
+  const instrucciones =
+    `Amasado / Fermentación:\n${instrAmasadoInput.value || "—"}\n\n` +
+    `Horneado:\n${instrHorneadoInput.value || "—"}`;
+  const lineas = doc.splitTextToSize(instrucciones, 180);
+  doc.text(lineas, 14, y + 10);
 
   doc.save((nombreRecetaInput.value || "receta") + ".pdf");
 }
@@ -229,7 +240,7 @@ btnEliminar.addEventListener("click", eliminarReceta);
 btnExportar.addEventListener("click", exportarPDF);
 btnLimpiar.addEventListener("click", limpiarFormulario);
 recetaSelect.addEventListener("change", e => cargarReceta(e.target.value));
-btnRecalcular.addEventListener("click", calcularPesos); // 🔹 FIX del botón
+btnRecalcular.addEventListener("click", calcularPesos);
 
 // Inicializar
 cargarRecetas();
