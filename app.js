@@ -11,6 +11,7 @@ import {
 } from "https://www.gstatic.com/firebasejs/10.14.0/firebase-firestore.js";
 
 import jsPDF from "https://cdn.jsdelivr.net/npm/jspdf@2.5.1/+esm";
+import autoTable from "https://cdn.jsdelivr.net/npm/jspdf-autotable@3.8.1/+esm";
 
 // ================== CONFIG FIREBASE ==================
 const firebaseConfig = {
@@ -122,7 +123,6 @@ function calcularPesos() {
     return;
   }
 
-  // harina base proporcional al % de harina
   const flourWeight = (peso * 100) / sumPerc;
   items.forEach(it => it.raw = (it.perc/100) * flourWeight);
 
@@ -147,7 +147,6 @@ function calcularPesos() {
     tablaIngredientes.appendChild(r);
   });
 
-  // 👇 solo gramos, ya no porcentaje
   document.getElementById('sumGrams').textContent = totalRounded + ' g';
 }
 
@@ -260,32 +259,55 @@ function exportarPDF() {
   }
 
   const docPdf = new jsPDF();
-  docPdf.setFontSize(16);
-  docPdf.text(nombreReceta.value, 10, 15);
+
+  // Título
+  docPdf.setFontSize(18);
+  docPdf.setFont("helvetica", "bold");
+  docPdf.text(nombreReceta.value, 105, 20, { align: "center" });
 
   docPdf.setFontSize(12);
-  docPdf.text(`Peso total: ${pesoTotal.value} g`, 10, 25);
+  docPdf.setFont("helvetica", "normal");
+  docPdf.text(`Peso total: ${pesoTotal.value} g`, 105, 30, { align: "center" });
 
-  let y = 35;
-  docPdf.text("Ingredientes:", 10, y);
-  y += 6;
-
+  // Ingredientes en tabla
+  const rows = [];
   Array.from(tablaIngredientes.querySelectorAll("tr")).forEach(tr => {
     const cols = Array.from(tr.querySelectorAll("td")).map(td => td.textContent);
-    if (cols.length === 3) {
-      docPdf.text(`${cols[0]} - ${cols[1]} - ${cols[2]}`, 10, y);
-      y += 6;
+    if (cols.length === 3) rows.push(cols);
+  });
+
+  autoTable(docPdf, {
+    startY: 40,
+    head: [["Ingrediente", "% Panadero", "Peso (g)"]],
+    body: rows,
+    styles: { fontSize: 11 },
+    headStyles: { fillColor: [41, 128, 185], textColor: 255, halign: "center" },
+    columnStyles: {
+      0: { halign: "left" },
+      1: { halign: "center" },
+      2: { halign: "center" }
     }
   });
 
+  // Instrucciones
+  let y = docPdf.lastAutoTable.finalY + 15;
+
+  docPdf.setFont("helvetica", "bold");
+  docPdf.text("Instrucciones", 14, y);
   y += 8;
-  docPdf.text("Instrucciones:", 10, y);
+
+  docPdf.setFont("helvetica", "bold");
+  docPdf.text("Amasado/Fermentación:", 14, y);
   y += 6;
-  docPdf.text("Amasado/Fermentación:", 10, y); y+=6;
-  docPdf.text(instrAmasado.value || "-", 10, y, { maxWidth: 180 });
+  docPdf.setFont("helvetica", "normal");
+  docPdf.text(instrAmasado.value || "-", 14, y, { maxWidth: 180 });
   y += 20;
-  docPdf.text("Horneado:", 10, y); y+=6;
-  docPdf.text(instrHorneado.value || "-", 10, y, { maxWidth: 180 });
+
+  docPdf.setFont("helvetica", "bold");
+  docPdf.text("Horneado:", 14, y);
+  y += 6;
+  docPdf.setFont("helvetica", "normal");
+  docPdf.text(instrHorneado.value || "-", 14, y, { maxWidth: 180 });
 
   docPdf.save(`${nombreReceta.value}.pdf`);
 }
