@@ -36,26 +36,66 @@ const sumGramsEl = document.getElementById("sumGrams");
 let ingredientes = [];
 let recetaIdActual = null;
 
-// --- Función: recalcular pesos ---
+// --- Función: recalcular pesos (panadería real) ---
 function calcularPesos() {
-  const pesoTotal = Number(pesoTotalInput.value) || 0;
-  let suma = 0;
-
+  const pesoTotal = parseFloat(pesoTotalInput.value) || 0;
   tablaIngredientes.innerHTML = "";
-  ingredientes.forEach((ing, idx) => {
-    const gramos = ((ing.porcentaje / 100) * pesoTotal).toFixed(1);
-    suma += Number(gramos);
 
+  if (!ingredientes.length || pesoTotal <= 0) {
+    sumGramsEl.textContent = "0 g";
+    return;
+  }
+
+  // suma de % panadero
+  const sumPerc = ingredientes.reduce((acc, ing) => acc + (parseFloat(ing.porcentaje) || 0), 0);
+
+  if (sumPerc <= 0) {
+    sumGramsEl.textContent = "0 g";
+    return;
+  }
+
+  // Harina base proporcional
+  const flourWeight = (pesoTotal * 100) / sumPerc;
+
+  // Calcular gramos crudos
+  ingredientes.forEach(ing => {
+    ing._raw = (parseFloat(ing.porcentaje) || 0) / 100 * flourWeight;
+  });
+
+  // Redondear y ajustar para que cuadre con pesoTotal
+  let totalRounded = 0;
+  ingredientes.forEach(ing => {
+    ing._grams = Math.round(ing._raw);
+    totalRounded += ing._grams;
+  });
+
+  const delta = Math.round(pesoTotal) - totalRounded;
+  if (delta !== 0) {
+    // intentar ajustar en harina (100%), o si no en el mayor %
+    let flourIdx = ingredientes.findIndex(it => Math.abs(it.porcentaje - 100) < 1e-6);
+    if (flourIdx === -1) {
+      let maxPerc = -Infinity, idx = 0;
+      ingredientes.forEach((it,i) => {
+        if (it.porcentaje > maxPerc) { maxPerc = it.porcentaje; idx=i; }
+      });
+      flourIdx = idx;
+    }
+    ingredientes[flourIdx]._grams += delta;
+    totalRounded += delta;
+  }
+
+  // Render tabla
+  ingredientes.forEach(ing => {
     const row = document.createElement("tr");
     row.innerHTML = `
       <td>${ing.nombre}</td>
-      <td>${ing.porcentaje}%</td>
-      <td>${gramos}</td>
+      <td>${(parseFloat(ing.porcentaje) || 0).toFixed(2)}%</td>
+      <td>${ing._grams} g</td>
     `;
     tablaIngredientes.appendChild(row);
   });
 
-  sumGramsEl.textContent = suma.toFixed(1);
+  sumGramsEl.textContent = totalRounded + " g";
 }
 
 // --- Añadir ingrediente ---
