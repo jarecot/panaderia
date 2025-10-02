@@ -1,0 +1,79 @@
+body {
+  font-family: 'Segoe UI', Tahoma, sans-serif;
+  margin: 0;
+  padding: 0;
+  background: #fff8f0 url('https://www.transparenttextures.com/patterns/white-wall-3.png');
+  color: #333;
+}
+
+header {
+  background: #d18f5d;
+  color: white;
+  padding: 1rem;
+  text-align: center;
+}
+
+h1 i {
+  margin-right: 8px;
+}
+
+main {
+  padding: 20px;
+  max-width: 900px;
+  margin: auto;
+}
+
+.panel {
+  background: #fff;
+  border-radius: 12px;
+  padding: 20px;
+  box-shadow: 0 3px 8px rgba(0,0,0,0.15);
+}
+
+label { font-weight: 600; margin-top: 10px; display: block; }
+input, textarea, select {
+  width: 100%; padding: 8px; margin-top: 4px;
+  border: 1px solid #ccc; border-radius: 6px;
+}
+
+textarea { resize: vertical; }
+
+.row { display: flex; gap: 10px; flex-wrap: wrap; }
+.row > * { flex: 1; }
+.align-bottom { display: flex; align-items: flex-end; }
+
+.actions-row {
+  display: flex;
+  gap: 10px;
+  margin-top: 10px;
+  flex-wrap: wrap;
+}
+
+.icon-btn {
+  background: #f4f4f4;
+  border: none;
+  padding: 8px 12px;
+  border-radius: 6px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  transition: background 0.2s;
+}
+.icon-btn i { font-size: 18px; }
+.icon-btn:hover { background: #e0d4ca; }
+.icon-btn.primary { background: #d18f5d; color: white; }
+.icon-btn.primary:hover { background: #b57746; }
+.icon-btn.danger { background: #e57373; color: white; }
+.icon-btn.danger:hover { background: #c62828; }
+
+table { width: 100%; border-collapse: collapse; margin-top: 12px; }
+th, td { border: 1px solid #ddd; padding: 8px; }
+th { background: #f2e3d5; }
+
+footer {
+  text-align: center;
+  padding: 12px;
+  background: #f7eee5;
+  margin-top: 20px;
+}

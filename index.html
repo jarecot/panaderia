@@ -4,333 +4,76 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
   <title>Gestor de Recetas de Panadería</title>
-  <style>
-    body { font-family: Arial, sans-serif; max-width: 1000px; margin: 0 auto; padding: 20px; }
-    h1 { text-align: center; }
-    label { display:block; margin-top:8px; font-weight:600; }
-    input, textarea, select, button { width:100%; padding:8px; margin-top:6px; box-sizing:border-box; }
-    .row { display:flex; gap:10px; }
-    .row > * { flex:1; }
-    .ingrediente { display:flex; gap:8px; align-items:center; margin-bottom:6px; }
-    .ingrediente input { flex:1; padding:6px; }
-    .smallBtn { width:auto; padding:6px 10px; cursor:pointer; }
-    table { width:100%; border-collapse:collapse; margin-top:12px; }
-    th,td { border:1px solid #ddd; padding:8px; text-align:left; }
-    th { background:#f4f4f4; }
-    .actions { display:flex; gap:8px; margin-top:10px; }
-  </style>
+  <link rel="stylesheet" href="styles.css">
+  <!-- Iconos -->
+  <link href="https://unpkg.com/boxicons@2.1.4/css/boxicons.min.css" rel="stylesheet">
+  <!-- jsPDF -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 </head>
 <body>
-  <h1>Gestor de Recetas de Panadería</h1>
+  <header>
+    <h1><i class="bx bx-baguette"></i> Gestor de Recetas de Panadería</h1>
+  </header>
 
-  <label for="recetaSelect">Seleccionar receta</label>
-  <div class="row actions">
-    <select id="recetaSelect"></select>
-    <button id="btnCargar" class="smallBtn">Cargar</button>
-    <button id="btnEliminar" class="smallBtn">Eliminar</button>
-  </div>
+  <main>
+    <section class="panel">
+      <label for="recetaSelect">Seleccionar receta</label>
+      <div class="actions-row">
+        <select id="recetaSelect"></select>
+        <button id="btnCargar" class="icon-btn" title="Cargar receta"><i class="bx bx-download"></i></button>
+        <button id="btnEliminar" class="icon-btn danger" title="Eliminar receta"><i class="bx bx-trash"></i></button>
+      </div>
 
-  <label for="nombreReceta">Nombre de la receta</label>
-  <input id="nombreReceta" type="text" placeholder="Ej. Baguette clásica">
+      <label for="nombreReceta">Nombre de la receta</label>
+      <input id="nombreReceta" type="text" placeholder="Ej. Baguette clásica">
 
-  <div class="row">
-    <div>
-      <label for="pesoTotal">Peso total de la masa (g)</label>
-      <input id="pesoTotal" type="number" min="1" value="1000">
-    </div>
-    <div>
-      <label>&nbsp;</label>
-      <button id="btnRecalcular" class="smallBtn">Recalcular</button>
-    </div>
-  </div>
+      <div class="row">
+        <div>
+          <label for="pesoTotal">Peso total de la masa (g)</label>
+          <input id="pesoTotal" type="number" min="1" value="1000">
+        </div>
+        <div class="align-bottom">
+          <button id="btnRecalcular" class="icon-btn"><i class="bx bx-refresh"></i> Recalcular</button>
+        </div>
+      </div>
 
-  <h3>Instrucciones</h3>
-  <label for="instrAmasado">Amasado / Fermentación</label>
-  <textarea id="instrAmasado" rows="3" placeholder="Instrucciones de amasado y fermentación"></textarea>
+      <h3><i class="bx bx-notepad"></i> Instrucciones</h3>
+      <label for="instrAmasado">Amasado / Fermentación</label>
+      <textarea id="instrAmasado" rows="3"></textarea>
 
-  <label for="instrHorneado">Horneado</label>
-  <textarea id="instrHorneado" rows="2" placeholder="Instrucciones de horneado"></textarea>
+      <label for="instrHorneado">Horneado</label>
+      <textarea id="instrHorneado" rows="2"></textarea>
 
-  <h3>Ingredientes (% panadero)</h3>
-  <div id="ingredientes"></div>
-  <div style="margin-top:8px;">
-    <button id="btnAgregarIngrediente" class="smallBtn">+ Agregar ingrediente</button>
-  </div>
+      <h3><i class="bx bx-bowl-hot"></i> Ingredientes (% panadero)</h3>
+      <div id="ingredientes"></div>
+      <div class="actions-row">
+        <button id="btnAgregarIngrediente" class="icon-btn"><i class="bx bx-plus"></i> Ingrediente</button>
+      </div>
 
-  <h3>Resultado</h3>
-  <table>
-    <thead>
-      <tr><th>Ingrediente</th><th>% panadero</th><th>Peso (g)</th></tr>
-    </thead>
-    <tbody id="tablaIngredientes"></tbody>
-    <tfoot>
-      <tr><th>Total</th><th id="sumPercent">--</th><th id="sumGrams">--</th></tr>
-    </tfoot>
-  </table>
+      <h3><i class="bx bx-table"></i> Resultado</h3>
+      <table>
+        <thead>
+          <tr><th>Ingrediente</th><th>% panadero</th><th>Peso (g)</th></tr>
+        </thead>
+        <tbody id="tablaIngredientes"></tbody>
+        <tfoot>
+          <tr><th>Total</th><th id="sumPercent">--</th><th id="sumGrams">--</th></tr>
+        </tfoot>
+      </table>
 
-  <div style="margin-top:12px;" class="actions">
-    <button id="btnGuardar" class="smallBtn">💾 Guardar / Actualizar</button>
-    <button id="btnLimpiar" class="smallBtn">Limpiar formulario</button>
-  </div>
+      <div class="actions-row">
+        <button id="btnGuardar" class="icon-btn primary"><i class="bx bx-save"></i> Guardar / Actualizar</button>
+        <button id="btnPDF" class="icon-btn"><i class="bx bx-export"></i> Exportar PDF</button>
+        <button id="btnLimpiar" class="icon-btn"><i class="bx bx-eraser"></i> Limpiar</button>
+      </div>
+    </section>
+  </main>
 
-  <!-- Firebase + Lógica -->
-  <script type="module">
-    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.14.0/firebase-app.js";
-    import {
-      getFirestore,
-      collection,
-      getDocs,
-      addDoc,
-      setDoc,
-      doc,
-      deleteDoc
-    } from "https://www.gstatic.com/firebasejs/10.14.0/firebase-firestore.js";
+  <footer>
+    <small>Hecho con <i class="bx bxs-heart"></i> para panaderos</small>
+  </footer>
 
-    // ================== CONFIG FIREBASE (tu proyecto) ==================
-    const firebaseConfig = {
-      apiKey: "AIzaSyAhzdmVFlvtoqMSfIQ6OCbiYdg6s6c95iY",
-      authDomain: "recetaspanaderia-b31f2.firebaseapp.com",
-      projectId: "recetaspanaderia-b31f2",
-      storageBucket: "recetaspanaderia-b31f2.firebasestorage.app",
-      messagingSenderId: "979143269695",
-      appId: "1:979143269695:web:678dc20bf48fc71700078a"
-    };
-    // =================================================================
-
-    const app = initializeApp(firebaseConfig);
-    const db = getFirestore(app);
-
-    // DOM
-    let recetaSelect, btnCargar, btnEliminar, nombreReceta, pesoTotal, instrAmasado, instrHorneado;
-    let ingredientesDiv, tablaIngredientes, btnAgregarIngrediente, btnGuardar, btnRecalcular, btnLimpiar;
-    let recetas = [], recetaActualId = null;
-
-    // Ejecuta cuando DOM cargado
-    window.addEventListener('DOMContentLoaded', () => {
-      // bind DOM
-      recetaSelect = document.getElementById('recetaSelect');
-      btnCargar = document.getElementById('btnCargar');
-      btnEliminar = document.getElementById('btnEliminar');
-      nombreReceta = document.getElementById('nombreReceta');
-      pesoTotal = document.getElementById('pesoTotal');
-      instrAmasado = document.getElementById('instrAmasado');
-      instrHorneado = document.getElementById('instrHorneado');
-      ingredientesDiv = document.getElementById('ingredientes');
-      tablaIngredientes = document.getElementById('tablaIngredientes');
-      btnAgregarIngrediente = document.getElementById('btnAgregarIngrediente');
-      btnGuardar = document.getElementById('btnGuardar');
-      btnRecalcular = document.getElementById('btnRecalcular');
-      btnLimpiar = document.getElementById('btnLimpiar');
-
-      // listeners
-      btnAgregarIngrediente.addEventListener('click', () => addIngredient());
-      btnGuardar.addEventListener('click', guardarReceta);
-      btnCargar.addEventListener('click', cargarReceta);
-      btnEliminar.addEventListener('click', eliminarReceta);
-      btnRecalcular.addEventListener('click', calcularPesos);
-      btnLimpiar.addEventListener('click', limpiarFormulario);
-      recetaSelect.addEventListener('change', () => { /* simplemente seleccionar */ });
-
-      // inicializa
-      cargarRecetas().catch(e => console.error('Error init cargarRecetas:', e));
-    });
-
-    // ---------------- Utiles UI ----------------
-    function escapeHtml(s){ return String(s||'').replaceAll('&','&amp;').replaceAll('<','&lt;').replaceAll('>','&gt;').replaceAll('"','&quot;'); }
-
-    function addIngredient(name = '', percent = '') {
-      const div = document.createElement('div');
-      div.className = 'ingrediente';
-      div.innerHTML = `
-        <input class="ing-name" type="text" placeholder="Ingrediente" value="${escapeHtml(name)}">
-        <input class="ing-percent" type="number" placeholder="% Panadero" value="${percent}" step="0.1" min="0">
-        <button type="button" class="smallBtn btn-remove">❌</button>
-      `;
-      ingredientesDiv.appendChild(div);
-
-      // attach events
-      const percentInput = div.querySelector('.ing-percent');
-      const removeBtn = div.querySelector('.btn-remove');
-      percentInput.addEventListener('input', calcularPesos);
-      removeBtn.addEventListener('click', () => { div.remove(); calcularPesos(); });
-
-      // recalc
-      calcularPesos();
-    }
-
-    function limpiarFormulario() {
-      recetaActualId = null;
-      nombreReceta.value = '';
-      pesoTotal.value = 1000;
-      instrAmasado.value = '';
-      instrHorneado.value = '';
-      ingredientesDiv.innerHTML = '';
-      tablaIngredientes.innerHTML = '';
-      recetaSelect.value = '';
-    }
-
-    // ---------------- Lógica panadera ----------------
-    function calcularPesos() {
-      const peso = parseFloat(pesoTotal.value) || 0;
-      const rows = Array.from(ingredientesDiv.querySelectorAll('.ingrediente'));
-      tablaIngredientes.innerHTML = '';
-
-      // crear items
-      const items = rows.map(row => {
-        const nombre = row.querySelector('.ing-name').value.trim();
-        const perc = parseFloat(row.querySelector('.ing-percent').value) || 0;
-        return { nombre, perc, raw:0, grams:0 };
-      });
-
-      const sumPerc = items.reduce((s,it) => s + (isFinite(it.perc) ? it.perc : 0), 0);
-
-      // mostrar si inválido
-      if (sumPerc <= 0 || peso <= 0) {
-        items.forEach(it => {
-          const r = document.createElement('tr');
-          r.innerHTML = `<td>${escapeHtml(it.nombre)}</td><td>${(it.perc||0).toFixed(2)}%</td><td>0 g</td>`;
-          tablaIngredientes.appendChild(r);
-        });
-        document.getElementById('sumPercent').textContent = sumPerc.toFixed(2) + '%';
-        document.getElementById('sumGrams').textContent = '0 g';
-        return;
-      }
-
-      // Calcular peso de harina (base 100%)
-      const flourWeight = (peso * 100) / sumPerc; // float
-
-      // calcular raw weights
-      items.forEach(it => it.raw = (it.perc/100) * flourWeight);
-
-      // redondear y sumar
-      let totalRounded = 0;
-      items.forEach(it => { it.grams = Math.round(it.raw); totalRounded += it.grams; });
-
-      // ajustar diferencia por redondeo al ingrediente de harina (porc == 100) si existe
-      const delta = Math.round(peso) - totalRounded;
-      if (delta !== 0) {
-        let flourIdx = items.findIndex(it => Math.abs(it.perc - 100) < 1e-6);
-        if (flourIdx === -1) {
-          // si no hay exactamente 100, buscar el ingrediente con mayor % (mejor candidato)
-          let maxPerc = -Infinity, idx = 0;
-          items.forEach((it,i) => { if (it.perc > maxPerc) { maxPerc = it.perc; idx=i; }});
-          flourIdx = idx;
-        }
-        items[flourIdx].grams += delta;
-        totalRounded += delta;
-      }
-
-      // render tabla y totales
-      items.forEach(it => {
-        const r = document.createElement('tr');
-        r.innerHTML = `<td>${escapeHtml(it.nombre)}</td><td>${(isFinite(it.perc)?it.perc.toFixed(2):'0.00')}%</td><td>${it.grams} g</td>`;
-        tablaIngredientes.appendChild(r);
-      });
-
-      document.getElementById('sumPercent').textContent = sumPerc.toFixed(2) + '%';
-      document.getElementById('sumGrams').textContent = totalRounded + ' g';
-    }
-
-    // ---------------- Firestore: cargar / guardar / eliminar ----------------
-    async function cargarRecetas() {
-      recetaSelect.innerHTML = '';
-      recetas = [];
-      try {
-        const snap = await getDocs(collection(db, "recetas"));
-        snap.forEach(d => recetas.push({ id: d.id, ...d.data() }));
-      } catch (err) {
-        console.error('Error leyendo Firestore:', err);
-        alert('Error leyendo recetas (revisa consola).');
-        return;
-      }
-
-      const empty = document.createElement('option');
-      empty.value = '';
-      empty.textContent = '-- Selecciona una receta --';
-      recetaSelect.appendChild(empty);
-
-      recetas.forEach(r => {
-        const opt = document.createElement('option');
-        opt.value = r.id;
-        opt.textContent = r.nombre || '(sin nombre)';
-        recetaSelect.appendChild(opt);
-      });
-    }
-
-    async function guardarReceta() {
-      const nombre = nombreReceta.value.trim();
-      if (!nombre) { alert('Escribe un nombre para la receta'); return; }
-
-      const peso = parseFloat(pesoTotal.value) || 0;
-      const ingredientes = Array.from(ingredientesDiv.querySelectorAll('.ingrediente')).map(div => {
-        return {
-          nombre: div.querySelector('.ing-name').value.trim(),
-          porcentaje: parseFloat(div.querySelector('.ing-percent').value) || 0
-        };
-      }).filter(i => i.nombre);
-
-      if (ingredientes.length === 0) { alert('Agrega al menos un ingrediente con nombre.'); return; }
-      const instrucciones = {
-        amasado: instrAmasado.value.trim(),
-        horneado: instrHorneado.value.trim()
-      };
-
-      const payload = { nombre, pesoTotal: peso, ingredientes, instrucciones };
-
-      console.log('Guardando receta (payload):', payload);
-
-      try {
-        if (recetaActualId) {
-          await setDoc(doc(db, 'recetas', recetaActualId), payload);
-          alert('Receta actualizada ✅');
-        } else {
-          const ref = await addDoc(collection(db, 'recetas'), payload);
-          recetaActualId = ref.id;
-          alert('Receta guardada ✅');
-        }
-        await cargarRecetas();
-        // seleccionar la receta guardada
-        if (recetaActualId) recetaSelect.value = recetaActualId;
-        calcularPesos();
-      } catch (err) {
-        console.error('Error guardando en Firestore:', err);
-        alert('Error guardando receta (revisa consola).');
-      }
-    }
-
-    function cargarReceta() {
-      const id = recetaSelect.value;
-      if (!id) { alert('Selecciona una receta'); return; }
-      const r = recetas.find(x => x.id === id);
-      if (!r) return;
-      recetaActualId = r.id;
-      nombreReceta.value = r.nombre || '';
-      pesoTotal.value = r.pesoTotal || 1000;
-      instrAmasado.value = (r.instrucciones && r.instrucciones.amasado) ? r.instrucciones.amasado : '';
-      instrHorneado.value = (r.instrucciones && r.instrucciones.horneado) ? r.instrucciones.horneado : '';
-      ingredientesDiv.innerHTML = '';
-      (r.ingredientes || []).forEach(ing => addIngredient(ing.nombre || ing.name || '', ing.porcentaje || ing.percent || 0));
-      calcularPesos();
-    }
-
-    async function eliminarReceta() {
-      const id = recetaSelect.value;
-      if (!id) { alert('Selecciona una receta'); return; }
-      const r = recetas.find(x => x.id === id);
-      const nombre = r ? r.nombre : id;
-      if (!confirm(`¿Seguro que deseas eliminar la receta "${nombre}"? Esta acción no se puede deshacer.`)) return;
-      try {
-        await deleteDoc(doc(db, 'recetas', id));
-        alert(`Receta "${nombre}" eliminada.`);
-        recetaActualId = null;
-        limpiarFormulario();
-        await cargarRecetas();
-      } catch (err) {
-        console.error('Error eliminando receta:', err);
-        alert('Error eliminando receta (revisa consola).');
-      }
-    }
-
-  </script>
+  <!-- Firebase + App -->
+  <script type="module" src="app.js"></script>
 </body>
 </html>
