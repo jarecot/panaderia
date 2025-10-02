@@ -14,7 +14,7 @@ import jsPDF from "https://cdn.jsdelivr.net/npm/jspdf@2.5.1/+esm";
 
 // ================== CONFIG FIREBASE ==================
 const firebaseConfig = {
-  apiKey: "TU_API_KEY",
+  apiKey: "AIzaSyAhzdmVFlvtoqMSfIQ6OCbiYdg6s6c95iY",
   authDomain: "recetaspanaderia-b31f2.firebaseapp.com",
   projectId: "recetaspanaderia-b31f2",
   storageBucket: "recetaspanaderia-b31f2.firebasestorage.app",
@@ -289,3 +289,4 @@ function exportarPDF() {
 
   docPdf.save(`${nombreReceta.value}.pdf`);
 }
+
