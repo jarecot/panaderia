@@ -27,7 +27,7 @@ const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
 
 // DOM
-let recetaSelect, btnCargar, btnEliminar, nombreReceta, pesoTotal, instrAmasado, instrHorneado;
+let recetaSelect, btnEliminar, nombreReceta, pesoTotal, instrAmasado, instrHorneado;
 let ingredientesDiv, tablaIngredientes, btnAgregarIngrediente, btnGuardar, btnRecalcular, btnLimpiar, btnExportar;
 let recetas = [], recetaActualId = null;
 
@@ -35,7 +35,6 @@ let recetas = [], recetaActualId = null;
 window.addEventListener('DOMContentLoaded', () => {
   // bind DOM
   recetaSelect = document.getElementById('recetaSelect');
-  btnCargar = document.getElementById('btnCargar');
   btnEliminar = document.getElementById('btnEliminar');
   nombreReceta = document.getElementById('nombreReceta');
   pesoTotal = document.getElementById('pesoTotal');
@@ -52,11 +51,13 @@ window.addEventListener('DOMContentLoaded', () => {
   // listeners
   btnAgregarIngrediente.addEventListener('click', () => addIngredient());
   btnGuardar.addEventListener('click', guardarReceta);
-  btnCargar.addEventListener('click', cargarReceta);
   btnEliminar.addEventListener('click', eliminarReceta);
   btnRecalcular.addEventListener('click', calcularPesos);
   btnLimpiar.addEventListener('click', limpiarFormulario);
   btnExportar.addEventListener('click', exportarPDF);
+
+  // 🚀 Ahora al cambiar selección se carga automáticamente
+  recetaSelect.addEventListener('change', cargarReceta);
 
   cargarRecetas().catch(e => console.error('Error init cargarRecetas:', e));
 });
@@ -159,9 +160,7 @@ async function cargarRecetas() {
   recetas = [];
   try {
     const snap = await getDocs(collection(db, "recetas"));
-    console.log("📥 Firestore devolvió:", snap.size, "documentos");
     snap.forEach(d => {
-      console.log("➡️ Doc:", d.id, d.data());
       recetas.push({ id: d.id, ...d.data() });
     });
   } catch (err) {
@@ -174,10 +173,6 @@ async function cargarRecetas() {
   empty.value = '';
   empty.textContent = '-- Selecciona una receta --';
   recetaSelect.appendChild(empty);
-
-  if (recetas.length === 0) {
-    console.warn("⚠️ No hay recetas guardadas en Firestore todavía");
-  }
 
   recetas.forEach(r => {
     const opt = document.createElement('option');
@@ -229,7 +224,7 @@ async function guardarReceta() {
 
 function cargarReceta() {
   const id = recetaSelect.value;
-  if (!id) { alert('Selecciona una receta'); return; }
+  if (!id) return;
   const r = recetas.find(x => x.id === id);
   if (!r) return;
   recetaActualId = r.id;
