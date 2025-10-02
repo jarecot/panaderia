@@ -33,7 +33,6 @@ let recetas = [], recetaActualId = null;
 
 // Ejecuta cuando DOM cargado
 window.addEventListener('DOMContentLoaded', () => {
-  // bind DOM
   recetaSelect = document.getElementById('recetaSelect');
   btnEliminar = document.getElementById('btnEliminar');
   nombreReceta = document.getElementById('nombreReceta');
@@ -56,7 +55,7 @@ window.addEventListener('DOMContentLoaded', () => {
   btnLimpiar.addEventListener('click', limpiarFormulario);
   btnExportar.addEventListener('click', exportarPDF);
 
-  // 🚀 Ahora al cambiar selección se carga automáticamente
+  // 🚀 carga receta automáticamente al cambiar selección
   recetaSelect.addEventListener('change', cargarReceta);
 
   cargarRecetas().catch(e => console.error('Error init cargarRecetas:', e));
@@ -80,7 +79,6 @@ function addIngredient(name = '', percent = '') {
   `;
   ingredientesDiv.appendChild(div);
 
-  // attach events
   const percentInput = div.querySelector('.ing-percent');
   const removeBtn = div.querySelector('.btn-remove');
   percentInput.addEventListener('input', calcularPesos);
@@ -120,13 +118,12 @@ function calcularPesos() {
       r.innerHTML = `<td>${escapeHtml(it.nombre)}</td><td>${(it.perc||0).toFixed(2)}%</td><td>0 g</td>`;
       tablaIngredientes.appendChild(r);
     });
-    document.getElementById('sumPercent').textContent = sumPerc.toFixed(2) + '%';
     document.getElementById('sumGrams').textContent = '0 g';
     return;
   }
 
+  // harina base proporcional al % de harina
   const flourWeight = (peso * 100) / sumPerc;
-
   items.forEach(it => it.raw = (it.perc/100) * flourWeight);
 
   let totalRounded = 0;
@@ -150,7 +147,7 @@ function calcularPesos() {
     tablaIngredientes.appendChild(r);
   });
 
-  document.getElementById('sumPercent').textContent = sumPerc.toFixed(2) + '%';
+  // 👇 solo gramos, ya no porcentaje
   document.getElementById('sumGrams').textContent = totalRounded + ' g';
 }
 
