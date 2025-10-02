@@ -10,7 +10,8 @@ import {
   deleteDoc
 } from "https://www.gstatic.com/firebasejs/10.14.0/firebase-firestore.js";
 
-import jsPDF from "https://cdn.jsdelivr.net/npm/jspdf@2.5.1/+esm";
+// ✅ Corrección en las importaciones
+import { jsPDF } from "https://cdn.jsdelivr.net/npm/jspdf@2.5.1/+esm";
 import autoTable from "https://cdn.jsdelivr.net/npm/jspdf-autotable@3.8.1/+esm";
 
 // ================== CONFIG FIREBASE ==================
@@ -276,6 +277,7 @@ function exportarPDF() {
     if (cols.length === 3) rows.push(cols);
   });
 
+  // ✅ Uso correcto de autoTable
   autoTable(docPdf, {
     startY: 40,
     head: [["Ingrediente", "% Panadero", "Peso (g)"]],
