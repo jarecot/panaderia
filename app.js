@@ -101,42 +101,72 @@ function addIngredient(nombre = "Ingrediente", porcentaje = 0) {
 // --- Renderizar ingredientes ---
 function renderIngredientes() {
   ingredientesDiv.innerHTML = "";
+
   ingredientes.forEach((ing, idx) => {
     const div = document.createElement("div");
-    div.className = "row";
-    div.innerHTML = `
-      <input type="text" value="${ing.nombre}" data-idx="${idx}" class="nombreIng">
-      <input type="number" value="${ing.porcentaje}" data-idx="${idx}" class="pctIng">
-      <button class="icon-btn danger btnEliminarIng" data-idx="${idx}"><i class='bx bx-x'></i></button>
-    `;
+    div.className = "ingredient-row"; // nueva clase específica
+
+    // nombre
+    const nameInput = document.createElement("input");
+    nameInput.type = "text";
+    nameInput.value = ing.nombre || "";
+    nameInput.className = "nombreIng";
+    nameInput.dataset.idx = idx;
+
+    // porcentaje
+    const pctInput = document.createElement("input");
+    pctInput.type = "number";
+    pctInput.value = (ing.porcentaje != null) ? ing.porcentaje : "";
+    pctInput.className = "pctIng";
+    pctInput.step = "0.1";
+    pctInput.min = "0";
+    pctInput.dataset.idx = idx;
+
+    // botón eliminar (con clases iconográficas)
+    const delBtn = document.createElement("button");
+    delBtn.type = "button";
+    delBtn.className = "icon-btn danger btnEliminarIng ing-delete";
+    delBtn.dataset.idx = idx;
+    delBtn.innerHTML = "<i class='bx bx-x'></i>";
+
+    // montar fila
+    div.appendChild(nameInput);
+    div.appendChild(pctInput);
+    div.appendChild(delBtn);
     ingredientesDiv.appendChild(div);
   });
 
-  // --- Listeners ---
-  document.querySelectorAll(".nombreIng").forEach(inp => {
-    inp.addEventListener("input", e => {
-      const idx = e.target.dataset.idx;
-      ingredientes[idx].nombre = e.target.value;
+  // listeners: nombre
+  ingredientesDiv.querySelectorAll(".nombreIng").forEach(inp => {
+    inp.addEventListener("input", (e) => {
+      const i = Number(e.currentTarget.dataset.idx);
+      ingredientes[i].nombre = e.currentTarget.value;
       calcularPesos();
     });
   });
 
-  document.querySelectorAll(".pctIng").forEach(inp => {
-    inp.addEventListener("input", e => {
-      const idx = e.target.dataset.idx;
-      ingredientes[idx].porcentaje = parseFloat(e.target.value) || 0;
+  // listeners: porcentaje
+  ingredientesDiv.querySelectorAll(".pctIng").forEach(inp => {
+    inp.addEventListener("input", (e) => {
+      const i = Number(e.currentTarget.dataset.idx);
+      ingredientes[i].porcentaje = parseFloat(e.currentTarget.value) || 0;
       calcularPesos();
     });
   });
 
-  document.querySelectorAll(".btnEliminarIng").forEach(btn => {
-    btn.addEventListener("click", e => {
-      const idx = e.target.dataset.idx;
-      ingredientes.splice(idx, 1);
-      renderIngredientes();
+  // listeners: eliminar
+  ingredientesDiv.querySelectorAll(".btnEliminarIng").forEach(btn => {
+    btn.addEventListener("click", (e) => {
+      const i = Number(e.currentTarget.dataset.idx);
+      // si por alguna razón i no es numérico, abortar
+      if (Number.isFinite(i)) {
+        ingredientes.splice(i, 1);
+        renderIngredientes();
+      }
     });
   });
 
+  // recalcular tabla visual
   calcularPesos();
 }
 

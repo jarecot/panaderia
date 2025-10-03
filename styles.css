@@ -89,11 +89,12 @@ textarea { resize: vertical; }
   padding: 4px;
   font-size: 18px;
   cursor: pointer;
-  transition: transform 0.2s, color 0.2s;
+  transition: color 0.2s, background 0.2s;
 }
 .icon-btn.danger:hover {
   color: #e53935;
-  transform: scale(1.3);
+  background: rgba(231, 76, 60, 0.08);
+  transform: none; /* quitar escalado que causaba superposición */
 }
 
 /* ===== Tablas ===== */
@@ -161,4 +162,54 @@ footer {
   margin-top: 20px;
   font-size: 14px;
   color: #555;
+}
+
+/* ===== Fila de ingredientes ===== */
+.ingredient-row {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  margin-bottom: 8px;
+}
+
+.ingredient-row .nombreIng {
+  flex: 1 1 60%;
+  min-width: 0;
+  padding: 8px;
+  border-radius: 6px;
+  border: 1px solid #dcdcdc;
+}
+
+.ingredient-row .pctIng {
+  flex: 0 0 110px;
+  max-width: 110px;
+  padding: 8px;
+  border-radius: 6px;
+  border: 1px solid #dcdcdc;
+  text-align: right;
+}
+
+.ingredient-row .ing-delete {
+  flex: 0 0 36px;
+  width: 36px;
+  height: 36px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 8px;
+  border: none;
+  background: transparent;
+  color: #e74c3c;
+  cursor: pointer;
+  padding: 4px;
+  transition: background .12s, color .12s;
+}
+.ingredient-row .ing-delete i {
+  font-size: 18px;
+  pointer-events: none;
+}
+.ingredient-row .ing-delete:hover {
+  background: rgba(231, 76, 60, 0.06);
+  color: #c0392b;
+  transform: none;
 }
