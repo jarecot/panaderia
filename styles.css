@@ -97,6 +97,16 @@ textarea { resize: vertical; }
   transform: none; /* quitar escalado que causaba superposición */
 }
 
+/* Estilo para los botones Editar y Cancelar Edición */
+#btnEditar, #btnCancelarEdicion {
+  background: #f4f4f4;
+  color: #555;
+}
+#btnEditar:hover, #btnCancelarEdicion:hover {
+  background: #e0d4ca;
+  color: #333;
+}
+
 /* ===== Tablas ===== */
 table {
   width: 100%;

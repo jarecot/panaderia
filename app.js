@@ -1,3 +1,4 @@
+
 // ==================== Firebase ====================
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
 import { getAuth, signInAnonymously } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
@@ -21,7 +22,7 @@ const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
 const auth = getAuth(app);
 
-// Sign in anonymously (or use another method like email/password)
+// Sign in anonymously
 signInAnonymously(auth)
   .then(userCredential => {
     console.log("Signed in anonymously:", userCredential.user.uid);
@@ -30,7 +31,6 @@ signInAnonymously(auth)
     console.error("Anonymous auth error:", error);
     alert("Error al autenticar usuario");
   });
-
 
 // --- Elementos del DOM ---
 const recetaSelect = document.getElementById("recetaSelect");
@@ -46,6 +46,7 @@ const btnEditar = document.getElementById("btnEditar");
 const btnExportar = document.getElementById("btnExportar");
 const btnLimpiar = document.getElementById("btnLimpiar");
 const btnRecalcular = document.getElementById("btnRecalcular");
+const btnCancelarEdicion = document.getElementById("btnCancelarEdicion");
 const ingredientesSection = document.getElementById("ingredientesSection");
 
 const ingredientesDiv = document.getElementById("ingredientes");
@@ -254,10 +255,24 @@ function renderIngredientes() {
 // --- Toggle elementos de edición ---
 function toggleEditElements() {
   btnGuardar.style.display = isEditMode ? "flex" : "none";
+  btnCancelarEdicion.style.display = isEditMode ? "flex" : "none";
   ingredientesSection.style.display = isEditMode ? "block" : "none";
   btnEditar.style.display = (recetaIdActual && !isEditMode) ? "flex" : "none";
   btnEliminar.style.display = recetaIdActual ? "flex" : "none";
   console.log("Toggled edit elements, isEditMode:", isEditMode);
+}
+
+// --- Cancelar edición ---
+async function cancelarEdicion() {
+  if (recetaIdActual) {
+    // Recargar la receta desde Firestore para restaurar datos originales
+    await cargarReceta(recetaIdActual);
+  } else {
+    // Si es una receta nueva, limpiar el formulario
+    limpiarFormulario();
+  }
+  isEditMode = false;
+  renderAll();
 }
 
 // --- Guardar receta ---
@@ -275,6 +290,7 @@ async function guardarReceta() {
       try {
         await setDoc(doc(db, "recetas", recetaIdActual), receta);
         alert("✅ Receta actualizada correctamente");
+        isEditMode = false; // Salir del modo edición tras guardar
       } catch (error) {
         console.error("Error updating recipe:", error);
         alert("❌ Error al actualizar la receta");
@@ -287,6 +303,7 @@ async function guardarReceta() {
     try {
       await addDoc(collection(db, "recetas"), receta);
       alert("✅ Nueva receta guardada");
+      isEditMode = false; // Salir del modo edición tras guardar
     } catch (error) {
       console.error("Error saving new recipe:", error);
       alert("❌ Error al guardar la receta");
@@ -294,7 +311,6 @@ async function guardarReceta() {
   }
 
   await cargarRecetas();
-  // Permanece en edición después de guardar
 }
 
 // --- Cargar recetas ---
@@ -306,7 +322,7 @@ async function cargarRecetas() {
     snapshot.forEach(docSnap => {
       const opt = document.createElement("option");
       opt.value = docSnap.id;
-      opt.textContent = docSnap.data().nombre;
+      opt.textContent = docSnap.data().nombre || "Receta sin nombre";
       recetaSelect.appendChild(opt);
       console.log("Added recipe to dropdown:", docSnap.id, docSnap.data().nombre);
     });
@@ -473,6 +489,7 @@ btnRecalcular.addEventListener("click", () => {
   calcularPesos();
   tablaIngredientes.scrollIntoView({ behavior: "smooth" });
 });
+btnCancelarEdicion.addEventListener("click", cancelarEdicion);
 pesoTotalInput.addEventListener("input", () => {
   calcularPesos();
 });
@@ -483,5 +500,4 @@ recetaSelect.addEventListener("change", (e) => {
 
 // Inicializar
 cargarRecetas();
-
 limpiarFormulario(); // Inicia en modo edición vacía
