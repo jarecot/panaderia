@@ -27,7 +27,7 @@ h1 i {
 }
 
 .titulo:hover {
-  color: #794720;          /* ejemplo: cambia color al pasar el mouse */
+  color: #000000;          /* ejemplo: cambia color al pasar el mouse */
 }
 
 /* ===== Contenido principal ===== */
