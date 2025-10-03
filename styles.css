@@ -77,3 +77,53 @@ footer {
   background: #f7eee5;
   margin-top: 20px;
 }
+
+/* Tabla de ingredientes */
+table.ingredientes {
+  width: 100%;
+  border-collapse: separate;
+  border-spacing: 0 6px; /* espacio entre filas */
+}
+
+table.ingredientes th, 
+table.ingredientes td {
+  border: none;
+  padding: 10px 12px;
+  vertical-align: middle;
+}
+
+table.ingredientes th {
+  background: #f2e3d5;
+  border-radius: 6px;
+  text-align: left;
+}
+
+table.ingredientes tr {
+  background: #fff;
+  border-radius: 8px;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+}
+
+table.ingredientes td:first-child {
+  font-weight: 600;
+}
+
+table.ingredientes td:last-child {
+  text-align: center;
+  width: 40px;
+}
+
+/* Botón de eliminar ingrediente */
+.icon-btn.danger {
+  background: transparent;
+  color: #c62828;
+  border: none;
+  font-size: 18px;
+  cursor: pointer;
+  transition: transform 0.2s, color 0.2s;
+}
+
+.icon-btn.danger:hover {
+  color: #e53935;
+  transform: scale(1.2);
+}

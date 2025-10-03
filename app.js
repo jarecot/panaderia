@@ -262,7 +262,7 @@ function exportarPDF() {
 
   doc.setFont("helvetica", "normal");
   const instrucciones =
-    `Amasado / Fermentación:\n${instrAmasadoInput.value || "—"}\n\n` +
+    `Amasado\n / Fermentación:\n${instrAmasadoInput.value || "—"}\n\n` +
     `Horneado:\n${instrHorneadoInput.value || "—"}`;
 
   const lineas = doc.splitTextToSize(instrucciones, 180);
