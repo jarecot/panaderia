@@ -106,6 +106,7 @@ function addIngredient(nombre = "Ingrediente", porcentaje = 0) {
 
 // --- Renderizar todo basado en modo ---
 function renderAll() {
+  console.log("Rendering all, isEditMode:", isEditMode, "recetaIdActual:", recetaIdActual);
   renderNombre();
   renderInstrucciones();
   renderIngredientes();
@@ -131,6 +132,7 @@ function renderNombre() {
     h2.textContent = nombreRecetaContainer.dataset.value || "Receta sin nombre";
     nombreRecetaContainer.appendChild(h2);
   }
+  console.log("Rendered nombre:", nombreRecetaContainer.dataset.value);
 }
 
 // --- Renderizar instrucciones ---
@@ -151,6 +153,7 @@ function renderInstrucciones() {
     p.textContent = instrAmasadoContainer.dataset.value || "—";
     instrAmasadoContainer.appendChild(p);
   }
+  console.log("Rendered instrAmasado:", instrAmasadoContainer.dataset.value);
 
   // Horneado
   instrHorneadoContainer.innerHTML = "<label for='instrHorneado'>Horneado</label>";
@@ -168,6 +171,7 @@ function renderInstrucciones() {
     p.textContent = instrHorneadoContainer.dataset.value || "—";
     instrHorneadoContainer.appendChild(p);
   }
+  console.log("Rendered instrHorneado:", instrHorneadoContainer.dataset.value);
 }
 
 // --- Renderizar ingredientes ---
@@ -231,7 +235,7 @@ function renderIngredientes() {
       });
     });
   }
-  // En modo vista, no renderizamos nada en ingredientesDiv (está oculto)
+  console.log("Rendered ingredientes:", ingredientes);
 }
 
 // --- Toggle elementos de edición ---
@@ -240,6 +244,7 @@ function toggleEditElements() {
   ingredientesSection.style.display = isEditMode ? "block" : "none";
   btnEditar.style.display = (recetaIdActual && !isEditMode) ? "flex" : "none";
   btnEliminar.style.display = recetaIdActual ? "flex" : "none";
+  console.log("Toggled edit elements, isEditMode:", isEditMode);
 }
 
 // --- Guardar receta ---
@@ -254,15 +259,25 @@ async function guardarReceta() {
 
   if (recetaIdActual) {
     if (confirm("¿Quieres actualizar la receta existente?")) {
-      await setDoc(doc(db, "recetas", recetaIdActual), receta);
-      alert("✅ Receta actualizada correctamente");
+      try {
+        await setDoc(doc(db, "recetas", recetaIdActual), receta);
+        alert("✅ Receta actualizada correctamente");
+      } catch (error) {
+        console.error("Error updating recipe:", error);
+        alert("❌ Error al actualizar la receta");
+      }
     } else {
       alert("❌ Operación cancelada");
       return;
     }
   } else {
-    await addDoc(collection(db, "recetas"), receta);
-    alert("✅ Nueva receta guardada");
+    try {
+      await addDoc(collection(db, "recetas"), receta);
+      alert("✅ Nueva receta guardada");
+    } catch (error) {
+      console.error("Error saving new recipe:", error);
+      alert("❌ Error al guardar la receta");
+    }
   }
 
   await cargarRecetas();
@@ -271,33 +286,54 @@ async function guardarReceta() {
 
 // --- Cargar recetas ---
 async function cargarRecetas() {
-  recetaSelect.innerHTML = `<option value="">-- Selecciona una receta --</option>`;
-  const snapshot = await getDocs(collection(db, "recetas"));
-  snapshot.forEach(docSnap => {
-    const opt = document.createElement("option");
-    opt.value = docSnap.id;
-    opt.textContent = docSnap.data().nombre;
-    recetaSelect.appendChild(opt);
-  });
+  console.log("Loading recipes...");
+  recetaSelect.innerHTML = `<option value="">-- Agregar una receta --</option>`;
+  try {
+    const snapshot = await getDocs(collection(db, "recetas"));
+    snapshot.forEach(docSnap => {
+      const opt = document.createElement("option");
+      opt.value = docSnap.id;
+      opt.textContent = docSnap.data().nombre;
+      recetaSelect.appendChild(opt);
+      console.log("Added recipe to dropdown:", docSnap.id, docSnap.data().nombre);
+    });
+    console.log("Recipes loaded successfully, count:", snapshot.size);
+  } catch (error) {
+    console.error("Error loading recipes:", error);
+    alert("❌ Error al cargar las recetas");
+  }
 }
 
 // --- Cargar receta ---
 async function cargarReceta(id) {
+  console.log("Attempting to load recipe with id:", id);
   if (!id) {
+    console.log("No id provided, clearing form");
     limpiarFormulario();
     return;
   }
-  const docSnap = await getDoc(doc(db, "recetas", id));
-  if (docSnap.exists()) {
-    const data = docSnap.data();
-    nombreRecetaContainer.dataset.value = data.nombre;
-    pesoTotalInput.value = data.pesoTotal;
-    instrAmasadoContainer.dataset.value = data.instrAmasado || "";
-    instrHorneadoContainer.dataset.value = data.instrHorneado || "";
-    ingredientes = data.ingredientes || [];
-    recetaIdActual = id;
-    isEditMode = false; // Carga en modo vista
-    renderAll();
+  try {
+    const docSnap = await getDoc(doc(db, "recetas", id));
+    if (docSnap.exists()) {
+      const data = docSnap.data();
+      console.log("Recipe data fetched:", data);
+      nombreRecetaContainer.dataset.value = data.nombre || "";
+      pesoTotalInput.value = data.pesoTotal || 1000;
+      instrAmasadoContainer.dataset.value = data.instrAmasado || "";
+      instrHorneadoContainer.dataset.value = data.instrHorneado || "";
+      ingredientes = data.ingredientes || [];
+      recetaIdActual = id;
+      isEditMode = false; // Carga en modo vista
+      renderAll();
+      console.log("Recipe loaded successfully, id:", id);
+    } else {
+      console.error("No such document for id:", id);
+      alert("❌ La receta no existe");
+      limpiarFormulario();
+    }
+  } catch (error) {
+    console.error("Error loading recipe:", error);
+    alert("❌ Error al cargar la receta");
   }
 }
 
@@ -305,16 +341,22 @@ async function cargarReceta(id) {
 async function eliminarReceta() {
   if (!recetaIdActual) return;
   if (confirm("¿Seguro que deseas eliminar esta receta?")) {
-    await deleteDoc(doc(db, "recetas", recetaIdActual));
-    recetaIdActual = null;
-    limpiarFormulario();
-    await cargarRecetas();
-    alert("🗑️ Receta eliminada");
+    try {
+      await deleteDoc(doc(db, "recetas", recetaIdActual));
+      recetaIdActual = null;
+      limpiarFormulario();
+      await cargarRecetas();
+      alert("🗑️ Receta eliminada");
+    } catch (error) {
+      console.error("Error deleting recipe:", error);
+      alert("❌ Error al eliminar la receta");
+    }
   }
 }
 
 // --- Limpiar formulario ---
 function limpiarFormulario() {
+  console.log("Clearing form");
   nombreRecetaContainer.dataset.value = "";
   pesoTotalInput.value = 1000;
   instrAmasadoContainer.dataset.value = "";
@@ -414,9 +456,18 @@ btnEditar.addEventListener("click", () => {
 });
 btnExportar.addEventListener("click", exportarPDF);
 btnLimpiar.addEventListener("click", limpiarFormulario);
-recetaSelect.addEventListener("change", e => cargarReceta(e.target.value));
-btnRecalcular.addEventListener("click", calcularPesos);
-pesoTotalInput.addEventListener("input", calcularPesos); // Recalcula al cambiar peso en cualquier modo
+btnRecalcular.addEventListener("click", () => {
+  calcularPesos();
+  tablaIngredientes.scrollIntoView({ behavior: "smooth" });
+});
+pesoTotalInput.addEventListener("input", () => {
+  calcularPesos();
+  tablaIngredientes.scrollIntoView({ behavior: "smooth" });
+});
+recetaSelect.addEventListener("change", (e) => {
+  console.log("recetaSelect changed, value:", e.target.value);
+  cargarReceta(e.target.value);
+});
 
 // Inicializar
 cargarRecetas();
