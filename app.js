@@ -283,9 +283,9 @@ function exportarPDF() {
     bodyStyles: { fontSize: 11 }
   });
 
-  /* const total = ingredientes.reduce((acc, i) => acc + (i._grams || 0), 0);
+  const total = ingredientes.reduce((acc, i) => acc + (i._grams || 0), 0);
   doc.setFontSize(12);
-  doc.text(`Total: ${total} g`, 14, doc.lastAutoTable.finalY + 10);*/
+  doc.text(`Total: ${total} g`, 14, doc.lastAutoTable.finalY + 10);
 
   // --- Instrucciones ---
   let y = doc.lastAutoTable.finalY + 25;
