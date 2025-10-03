@@ -1,5 +1,6 @@
 // ==================== Firebase ====================
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+import { getAuth, signInAnonymously } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
 import {
   getFirestore, collection, addDoc, getDocs,
   updateDoc, deleteDoc, doc, getDoc, setDoc
@@ -18,6 +19,18 @@ const firebaseConfig = {
 
 const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
+const auth = getAuth(app);
+
+// Sign in anonymously (or use another method like email/password)
+signInAnonymously(auth)
+  .then(userCredential => {
+    console.log("Signed in anonymously:", userCredential.user.uid);
+  })
+  .catch(error => {
+    console.error("Anonymous auth error:", error);
+    alert("Error al autenticar usuario");
+  });
+
 
 // --- Elementos del DOM ---
 const recetaSelect = document.getElementById("recetaSelect");
