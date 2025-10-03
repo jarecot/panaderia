@@ -107,9 +107,36 @@ function renderIngredientes() {
     div.innerHTML = `
       <input type="text" value="${ing.nombre}" data-idx="${idx}" class="nombreIng">
       <input type="number" value="${ing.porcentaje}" data-idx="${idx}" class="pctIng">
+      <button class="btnEliminarIng" data-idx="${idx}">❌</button>
     `;
     ingredientesDiv.appendChild(div);
   });
+
+  // --- Listeners ---
+  document.querySelectorAll(".nombreIng").forEach(inp => {
+    inp.addEventListener("input", e => {
+      const idx = e.target.dataset.idx;
+      ingredientes[idx].nombre = e.target.value;
+      calcularPesos();
+    });
+  });
+
+  document.querySelectorAll(".pctIng").forEach(inp => {
+    inp.addEventListener("input", e => {
+      const idx = e.target.dataset.idx;
+      ingredientes[idx].porcentaje = parseFloat(e.target.value) || 0;
+      calcularPesos();
+    });
+  });
+
+  document.querySelectorAll(".btnEliminarIng").forEach(btn => {
+    btn.addEventListener("click", e => {
+      const idx = e.target.dataset.idx;
+      ingredientes.splice(idx, 1);
+      renderIngredientes();
+    });
+  });
+
   calcularPesos();
 }
 
@@ -124,9 +151,16 @@ async function guardarReceta() {
   };
 
   if (recetaIdActual) {
-    await setDoc(doc(db, "recetas", recetaIdActual), receta);
+    if (confirm("¿Quieres actualizar la receta existente?")) {
+      await setDoc(doc(db, "recetas", recetaIdActual), receta);
+      alert("✅ Receta actualizada correctamente");
+    } else {
+      alert("❌ Operación cancelada");
+      return;
+    }
   } else {
     await addDoc(collection(db, "recetas"), receta);
+    alert("✅ Nueva receta guardada");
   }
 
   await cargarRecetas();
@@ -163,10 +197,13 @@ async function cargarReceta(id) {
 // --- Eliminar receta ---
 async function eliminarReceta() {
   if (!recetaIdActual) return;
-  await deleteDoc(doc(db, "recetas", recetaIdActual));
-  recetaIdActual = null;
-  limpiarFormulario();
-  await cargarRecetas();
+  if (confirm("¿Seguro que deseas eliminar esta receta?")) {
+    await deleteDoc(doc(db, "recetas", recetaIdActual));
+    recetaIdActual = null;
+    limpiarFormulario();
+    await cargarRecetas();
+    alert("🗑️ Receta eliminada");
+  }
 }
 
 // --- Limpiar formulario ---
@@ -227,8 +264,17 @@ function exportarPDF() {
   const instrucciones =
     `Amasado / Fermentación:\n${instrAmasadoInput.value || "—"}\n\n` +
     `Horneado:\n${instrHorneadoInput.value || "—"}`;
+
   const lineas = doc.splitTextToSize(instrucciones, 180);
-  doc.text(lineas, 14, y + 10);
+
+  lineas.forEach(linea => {
+    if (y > 270) { // salto de página si se pasa
+      doc.addPage();
+      y = 20;
+    }
+    doc.text(linea, 14, y);
+    y += 7;
+  });
 
   doc.save((nombreRecetaInput.value || "receta") + ".pdf");
 }
