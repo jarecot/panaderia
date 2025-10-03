@@ -300,7 +300,7 @@ async function guardarReceta() {
 // --- Cargar recetas ---
 async function cargarRecetas() {
   console.log("Loading recipes...");
-  recetaSelect.innerHTML = `<option value="">-- Agregar una receta o selecciona una del listado --</option>`;
+  recetaSelect.innerHTML = `<option value="">-- Agregar receta ➕🍞 --</option>`;
   try {
     const snapshot = await getDocs(collection(db, "recetas"));
     snapshot.forEach(docSnap => {
@@ -486,3 +486,4 @@ recetaSelect.addEventListener("change", (e) => {
 cargarRecetas();
 
 limpiarFormulario(); // Inicia en modo edición vacía
+
