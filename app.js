@@ -314,7 +314,11 @@ async function guardarReceta() {
 // --- Cargar recetas ---
 async function cargarRecetas() {
   console.log("Loading recipes...");
+<<<<<<< HEAD
   recetaSelect.innerHTML = `<option value="">-- Selecciona una receta --</option>`;
+=======
+  recetaSelect.innerHTML = `<option value="">-- Agregar receta ➕🍞 --</option>`;
+>>>>>>> 85e88db62432eeac281153d58420609dbc586543
   try {
     const snapshot = await getDocs(collection(db, "recetas"));
     snapshot.forEach(docSnap => {
@@ -500,4 +504,11 @@ recetaSelect.addEventListener("change", (e) => {
 });
 
 // Inicializar
+<<<<<<< HEAD
 limpiarFormulario(); // Inicia en modo edición vacía, cargarRecetas se llama tras autenticación
+=======
+cargarRecetas();
+
+limpiarFormulario(); // Inicia en modo edición vacía
+
+>>>>>>> 85e88db62432eeac281153d58420609dbc586543
