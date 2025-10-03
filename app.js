@@ -258,11 +258,11 @@ function exportarPDF() {
   let y = doc.lastAutoTable.finalY + 25;
   doc.setFontSize(12);
   doc.setFont("helvetica", "bold");
-  doc.text("Instrucciones:", 14, y);
+  doc.text("Instrucciones:\n", 14, y);
 
   doc.setFont("helvetica", "normal");
   const instrucciones =
-    `Amasado\n / Fermentación:\n${instrAmasadoInput.value || "—"}\n\n` +
+    `Amasado / Fermentación:\n${instrAmasadoInput.value || "—"}\n\n` +
     `Horneado:\n${instrHorneadoInput.value || "—"}`;
 
   const lineas = doc.splitTextToSize(instrucciones, 180);
