@@ -256,26 +256,47 @@ function exportarPDF() {
 
   // --- Instrucciones ---
   let y = doc.lastAutoTable.finalY + 25;
+
+  // Título de sección
+  doc.setFontSize(13);
+  doc.setFont("helvetica", "bold");
+  doc.text("Instrucciones", 14, y);
+
+  y += 10; // espacio después del título
+
+  // Subtítulo Amasado/Fermentación
   doc.setFontSize(12);
   doc.setFont("helvetica", "bold");
-  doc.text("Instrucciones:\n", 14, y);
+  doc.text("Amasado / Fermentación:", 14, y);
 
+  y += 8;
   doc.setFont("helvetica", "normal");
-  const instrucciones =
-    `Amasado / Fermentación:\n${instrAmasadoInput.value || "—"}\n\n` +
-    `Horneado:\n${instrHorneadoInput.value || "—"}`;
+  const amasado = instrAmasadoInput.value || "—";
+  const lineasAmasado = doc.splitTextToSize(amasado, 180);
 
-  const lineas = doc.splitTextToSize(instrucciones, 180);
-
-  lineas.forEach(linea => {
-    if (y > 270) { // salto de página si se pasa
-      doc.addPage();
-      y = 20;
-    }
+  lineasAmasado.forEach(linea => {
+    if (y > 270) { doc.addPage(); y = 20; }
     doc.text(linea, 14, y);
     y += 7;
   });
 
+  // Subtítulo Horneado
+  y += 10;
+  doc.setFont("helvetica", "bold");
+  doc.text("Horneado:", 14, y);
+
+  y += 8;
+  doc.setFont("helvetica", "normal");
+  const horneado = instrHorneadoInput.value || "—";
+  const lineasHorneado = doc.splitTextToSize(horneado, 180);
+
+  lineasHorneado.forEach(linea => {
+    if (y > 270) { doc.addPage(); y = 20; }
+    doc.text(linea, 14, y);
+    y += 7;
+  });
+
+  // Guardar PDF
   doc.save((nombreRecetaInput.value || "receta") + ".pdf");
 }
 
