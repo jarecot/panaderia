@@ -1,6 +1,9 @@
-// --- Firebase inicialización ---
-import { initializeApp } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-app.js";
-import { getFirestore, collection, addDoc, getDocs, doc, setDoc, deleteDoc, getDoc } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-firestore.js";
+// ==================== Firebase ====================
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+import {
+  getFirestore, collection, addDoc, getDocs,
+  updateDoc, deleteDoc, doc
+} from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
 // ================== CONFIG FIREBASE ==================
 const firebaseConfig = {
@@ -261,7 +264,7 @@ function exportarPDF() {
   if (pesoTotalInput.value) {
     doc.setFontSize(12);
     doc.setFont("helvetica", "normal");
-    doc.text(`Peso total: ${pesoTotalInput.value} g`, 14, 30);
+    doc.text(`Peso total de la masa: ${pesoTotalInput.value} g`, 14, 30);
   }
 
   // --- Tabla ingredientes ---
@@ -280,9 +283,9 @@ function exportarPDF() {
     bodyStyles: { fontSize: 11 }
   });
 
-  const total = ingredientes.reduce((acc, i) => acc + (i._grams || 0), 0);
+  /* const total = ingredientes.reduce((acc, i) => acc + (i._grams || 0), 0);
   doc.setFontSize(12);
-  doc.text(`Total: ${total} g`, 14, doc.lastAutoTable.finalY + 10);
+  doc.text(`Total: ${total} g`, 14, doc.lastAutoTable.finalY + 10);*/
 
   // --- Instrucciones ---
   let y = doc.lastAutoTable.finalY + 25;
