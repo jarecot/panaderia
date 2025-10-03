@@ -1,6 +1,6 @@
 // ==================== Firebase ====================
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
-import { getAuth, signInAnonymously, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
+import { getAuth, signInAnonymously } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
 import {
   getFirestore, collection, addDoc, getDocs,
   updateDoc, deleteDoc, doc, getDoc, setDoc
@@ -20,6 +20,17 @@ const firebaseConfig = {
 const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
 const auth = getAuth(app);
+
+// Sign in anonymously (or use another method like email/password)
+signInAnonymously(auth)
+  .then(userCredential => {
+    console.log("Signed in anonymously:", userCredential.user.uid);
+  })
+  .catch(error => {
+    console.error("Anonymous auth error:", error);
+    alert("Error al autenticar usuario");
+  });
+
 
 // --- Elementos del DOM ---
 const recetaSelect = document.getElementById("recetaSelect");
@@ -44,28 +55,6 @@ const sumGramsEl = document.getElementById("sumGrams");
 let ingredientes = [];
 let recetaIdActual = null;
 let isEditMode = true; // Inicia en edición para nuevas recetas
-let currentUser = null;
-
-// --- Autenticación Anónima ---
-onAuthStateChanged(auth, (user) => {
-  if (user) {
-    console.log("Usuario autenticado:", user.uid, "Anónimo:", user.isAnonymous);
-    currentUser = user;
-    cargarRecetas(); // Cargar recetas solo después de autenticar
-  } else {
-    console.log("No hay usuario autenticado, intentando autenticación anónima...");
-    signInAnonymously(auth)
-      .then(userCredential => {
-        console.log("Autenticado anónimamente:", userCredential.user.uid);
-        currentUser = userCredential.user;
-        cargarRecetas();
-      })
-      .catch(error => {
-        console.error("Error en autenticación anónima:", error);
-        alert("❌ Error al autenticar. No se pueden cargar las recetas.");
-      });
-  }
-});
 
 // --- Función: recalcular pesos ---
 function calcularPesos() {
@@ -273,10 +262,6 @@ function toggleEditElements() {
 
 // --- Guardar receta ---
 async function guardarReceta() {
-  if (!currentUser) {
-    alert("❌ Debes estar autenticado para guardar una receta");
-    return;
-  }
   const receta = {
     nombre: nombreRecetaContainer.dataset.value,
     pesoTotal: Number(pesoTotalInput.value),
@@ -309,22 +294,19 @@ async function guardarReceta() {
   }
 
   await cargarRecetas();
+  // Permanece en edición después de guardar
 }
 
 // --- Cargar recetas ---
 async function cargarRecetas() {
   console.log("Loading recipes...");
-<<<<<<< HEAD
-  recetaSelect.innerHTML = `<option value="">-- Selecciona una receta --</option>`;
-=======
-  recetaSelect.innerHTML = `<option value="">-- Agregar receta ➕🍞 --</option>`;
->>>>>>> 85e88db62432eeac281153d58420609dbc586543
+  recetaSelect.innerHTML = `<option value="">-- Agregar una receta o selecciona una del listado --</option>`;
   try {
     const snapshot = await getDocs(collection(db, "recetas"));
     snapshot.forEach(docSnap => {
       const opt = document.createElement("option");
       opt.value = docSnap.id;
-      opt.textContent = docSnap.data().nombre || "Receta sin nombre";
+      opt.textContent = docSnap.data().nombre;
       recetaSelect.appendChild(opt);
       console.log("Added recipe to dropdown:", docSnap.id, docSnap.data().nombre);
     });
@@ -370,10 +352,6 @@ async function cargarReceta(id) {
 
 // --- Eliminar receta ---
 async function eliminarReceta() {
-  if (!currentUser) {
-    alert("❌ Debes estar autenticado para eliminar una receta");
-    return;
-  }
   if (!recetaIdActual) return;
   if (confirm("¿Seguro que deseas eliminar esta receta?")) {
     try {
@@ -504,11 +482,6 @@ recetaSelect.addEventListener("change", (e) => {
 });
 
 // Inicializar
-<<<<<<< HEAD
-limpiarFormulario(); // Inicia en modo edición vacía, cargarRecetas se llama tras autenticación
-=======
 cargarRecetas();
 
 limpiarFormulario(); // Inicia en modo edición vacía
-
->>>>>>> 85e88db62432eeac281153d58420609dbc586543
