@@ -107,7 +107,7 @@ function renderIngredientes() {
     div.innerHTML = `
       <input type="text" value="${ing.nombre}" data-idx="${idx}" class="nombreIng">
       <input type="number" value="${ing.porcentaje}" data-idx="${idx}" class="pctIng">
-      <button class="btnEliminarIng" data-idx="${idx}">❌</button>
+      <button class="icon-btn danger btnEliminarIng" data-idx="${idx}"><i class='bx bx-x'></i></button>
     `;
     ingredientesDiv.appendChild(div);
   });
