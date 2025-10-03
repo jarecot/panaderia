@@ -33,7 +33,7 @@ const btnEditar = document.getElementById("btnEditar");
 const btnExportar = document.getElementById("btnExportar");
 const btnLimpiar = document.getElementById("btnLimpiar");
 const btnRecalcular = document.getElementById("btnRecalcular");
-const addIngredienteContainer = document.getElementById("addIngredienteContainer");
+const ingredientesSection = document.getElementById("ingredientesSection");
 
 const ingredientesDiv = document.getElementById("ingredientes");
 const tablaIngredientes = document.getElementById("tablaIngredientes");
@@ -173,7 +173,6 @@ function renderInstrucciones() {
 // --- Renderizar ingredientes ---
 function renderIngredientes() {
   ingredientesDiv.innerHTML = "";
-
   if (isEditMode) {
     ingredientes.forEach((ing, idx) => {
       const div = document.createElement("div");
@@ -231,23 +230,14 @@ function renderIngredientes() {
         }
       });
     });
-  } else {
-    // Modo vista: lista simple
-    const ul = document.createElement("ul");
-    ul.className = "view-ingredientes-list";
-    ingredientes.forEach(ing => {
-      const li = document.createElement("li");
-      li.textContent = `${ing.nombre}: ${(parseFloat(ing.porcentaje) || 0).toFixed(2)}%`;
-      ul.appendChild(li);
-    });
-    ingredientesDiv.appendChild(ul);
   }
+  // En modo vista, no renderizamos nada en ingredientesDiv (está oculto)
 }
 
 // --- Toggle elementos de edición ---
 function toggleEditElements() {
   btnGuardar.style.display = isEditMode ? "flex" : "none";
-  addIngredienteContainer.style.display = isEditMode ? "flex" : "none";
+  ingredientesSection.style.display = isEditMode ? "block" : "none";
   btnEditar.style.display = (recetaIdActual && !isEditMode) ? "flex" : "none";
   btnEliminar.style.display = recetaIdActual ? "flex" : "none";
 }
