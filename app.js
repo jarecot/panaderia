@@ -316,7 +316,7 @@ async function guardarReceta() {
 // --- Cargar recetas ---
 async function cargarRecetas() {
   console.log("Loading recipes...");
-  recetaSelect.innerHTML = `<option value="">-- Agregar una receta o selecciona una del listado --</option>`;
+  recetaSelect.innerHTML = `<option value="">-- Agregar una receta ➕🥐 --</option>`;
   try {
     const snapshot = await getDocs(collection(db, "recetas"));
     snapshot.forEach(docSnap => {
