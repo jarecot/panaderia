@@ -1,0 +1,149 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Calculadora FermentaPro – Ajuste de Hidratación</title>
+
+<!-- Fuente y estilo general -->
+<style>
+  :root {
+    --color-base: #8b5e3c;
+    --color-acento: #d6ad60;
+    --color-fondo: #fffaf2;
+    --color-texto: #3a2e1f;
+  }
+
+  body {
+    font-family: 'Poppins', sans-serif;
+    background-color: var(--color-fondo);
+    color: var(--color-texto);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: 100vh;
+    margin: 0;
+  }
+
+  .container {
+    background: #ffffff;
+    border-radius: 20px;
+    box-shadow: 0 6px 16px rgba(0,0,0,0.1);
+    padding: 40px 30px;
+    max-width: 420px;
+    width: 90%;
+    text-align: center;
+  }
+
+  h1 {
+    font-size: 1.6rem;
+    color: var(--color-base);
+    margin-bottom: 10px;
+  }
+
+  p {
+    font-size: 0.9rem;
+    color: #555;
+    margin-bottom: 25px;
+  }
+
+  label {
+    display: block;
+    margin-top: 12px;
+    font-weight: 600;
+    text-align: left;
+  }
+
+  input {
+    width: 100%;
+    padding: 10px;
+    margin-top: 4px;
+    border: 1px solid #ccc;
+    border-radius: 8px;
+    font-size: 1rem;
+  }
+
+  button {
+    background-color: var(--color-base);
+    color: white;
+    border: none;
+    border-radius: 10px;
+    padding: 12px 20px;
+    margin-top: 25px;
+    font-size: 1rem;
+    cursor: pointer;
+    transition: background 0.3s;
+    width: 100%;
+  }
+
+  button:hover {
+    background-color: var(--color-acento);
+    color: var(--color-texto);
+  }
+
+  .resultado {
+    background: var(--color-acento);
+    color: var(--color-texto);
+    margin-top: 25px;
+    padding: 15px;
+    border-radius: 10px;
+    font-weight: 600;
+    font-size: 1.1rem;
+    display: none;
+  }
+
+  footer {
+    margin-top: 25px;
+    font-size: 0.8rem;
+    color: #777;
+  }
+</style>
+</head>
+
+<body>
+  <div class="container">
+    <h1>Calculadora FermentaPro</h1>
+    <p>Calcula la nueva hidratación según la diferencia de proteína entre harinas.</p>
+
+    <label for="proteinaOriginal">Proteína de la harina original (%)</label>
+    <input type="number" id="proteinaOriginal" step="0.1" placeholder="Ej: 12.7" />
+
+    <label for="proteinaNueva">Proteína de tu harina (%)</label>
+    <input type="number" id="proteinaNueva" step="0.1" placeholder="Ej: 11.0" />
+
+    <label for="hidratacionOriginal">Hidratación original de la receta (%)</label>
+    <input type="number" id="hidratacionOriginal" step="0.1" placeholder="Ej: 65" />
+
+    <button onclick="calcular()">Calcular Hidratación Ajustada</button>
+
+    <div class="resultado" id="resultado"></div>
+
+    <footer>📍 FermentaPro – Ciencia, técnica y estrategia para panaderos y fermentistas.</footer>
+  </div>
+
+  <script>
+    function calcular() {
+      const protOrig = parseFloat(document.getElementById("proteinaOriginal").value);
+      const protNueva = parseFloat(document.getElementById("proteinaNueva").value);
+      const hidraOrig = parseFloat(document.getElementById("hidratacionOriginal").value);
+
+      if (isNaN(protOrig) || isNaN(protNueva) || isNaN(hidraOrig)) {
+        alert("Por favor completa todos los campos numéricos.");
+        return;
+      }
+
+      const diferencia = protOrig - protNueva;
+      const ajuste = diferencia * 1.75; // regla FermentaPro
+      const hidraNueva = (hidraOrig - ajuste).toFixed(1);
+
+      const resultadoDiv = document.getElementById("resultado");
+      resultadoDiv.style.display = "block";
+      resultadoDiv.innerHTML = `
+        💧 Hidratación ajustada: <strong>${hidraNueva}%</strong><br>
+        (Reducción aplicada: ${ajuste.toFixed(2)}%)<br><br>
+        <small>Fórmula: ${hidraOrig} − (${diferencia.toFixed(2)} × 1.75)</small>
+      `;
+    }
+  </script>
+</body>
+</html>
