@@ -88,8 +88,15 @@
     padding: 15px;
     border-radius: 10px;
     font-weight: 600;
-    font-size: 1.1rem;
+    font-size: 1.05rem;
     display: none;
+  }
+
+  .detalle {
+    font-size: 0.9rem;
+    color: #2e2e2e;
+    text-align: left;
+    margin-top: 10px;
   }
 
   footer {
@@ -103,7 +110,7 @@
 <body>
   <div class="container">
     <h1>Calculadora FermentaPro</h1>
-    <p>Calcula la nueva hidratación según la diferencia de proteína entre harinas.</p>
+    <p>Calcula la nueva hidratación y los gramos de agua ajustados según la diferencia de proteína entre harinas.</p>
 
     <label for="proteinaOriginal">Proteína de la harina original (%)</label>
     <input type="number" id="proteinaOriginal" step="0.1" placeholder="Ej: 12.7" />
@@ -114,7 +121,10 @@
     <label for="hidratacionOriginal">Hidratación original de la receta (%)</label>
     <input type="number" id="hidratacionOriginal" step="0.1" placeholder="Ej: 65" />
 
-    <button onclick="calcular()">Calcular Hidratación Ajustada</button>
+    <label for="harinaGramos">Cantidad de harina (g)</label>
+    <input type="number" id="harinaGramos" step="1" placeholder="Ej: 450" />
+
+    <button onclick="calcular()">Calcular Ajuste</button>
 
     <div class="resultado" id="resultado"></div>
 
@@ -126,22 +136,31 @@
       const protOrig = parseFloat(document.getElementById("proteinaOriginal").value);
       const protNueva = parseFloat(document.getElementById("proteinaNueva").value);
       const hidraOrig = parseFloat(document.getElementById("hidratacionOriginal").value);
+      const harina = parseFloat(document.getElementById("harinaGramos").value);
 
-      if (isNaN(protOrig) || isNaN(protNueva) || isNaN(hidraOrig)) {
+      if (isNaN(protOrig) || isNaN(protNueva) || isNaN(hidraOrig) || isNaN(harina)) {
         alert("Por favor completa todos los campos numéricos.");
         return;
       }
 
       const diferencia = protOrig - protNueva;
-      const ajuste = diferencia * 1.75; // regla FermentaPro
+      const ajuste = diferencia * 1.75; // Regla FermentaPro
       const hidraNueva = (hidraOrig - ajuste).toFixed(1);
+
+      const aguaOriginal = (harina * (hidraOrig / 100)).toFixed(1);
+      const aguaNueva = (harina * (hidraNueva / 100)).toFixed(1);
 
       const resultadoDiv = document.getElementById("resultado");
       resultadoDiv.style.display = "block";
       resultadoDiv.innerHTML = `
-        💧 Hidratación ajustada: <strong>${hidraNueva}%</strong><br>
+        💧 <strong>Hidratación ajustada: ${hidraNueva}%</strong><br>
         (Reducción aplicada: ${ajuste.toFixed(2)}%)<br><br>
-        <small>Fórmula: ${hidraOrig} − (${diferencia.toFixed(2)} × 1.75)</small>
+        <div class="detalle">
+          🌾 Harina: <strong>${harina} g</strong><br>
+          💦 Agua original: <strong>${aguaOriginal} g</strong><br>
+          💧 Agua ajustada: <strong>${aguaNueva} g</strong><br><br>
+          <small>Fórmula: ${hidraOrig} − (${diferencia.toFixed(2)} × 1.75)</small>
+        </div>
       `;
     }
   </script>
