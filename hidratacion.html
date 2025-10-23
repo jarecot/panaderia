@@ -104,6 +104,25 @@
     font-size: 0.8rem;
     color: #777;
   }
+
+    /* Botón de volver */
+  .btn-volver {
+    background-color: transparent;
+    color: var(--color-base);
+    border: 2px solid var(--color-base);
+    border-radius: 10px;
+    padding: 10px 15px;
+    font-size: 0.95rem;
+    cursor: pointer;
+    margin-top: 25px;
+    transition: all 0.3s;
+    width: 100%;
+  }
+
+  .btn-volver:hover {
+    background-color: var(--color-base);
+    color: white;
+  }
 </style>
 </head>
 
@@ -127,6 +146,8 @@
     <button onclick="calcular()">Calcular Ajuste</button>
 
     <div class="resultado" id="resultado"></div>
+
+    <button class="btn-volver" onclick="window.location.href='index.html'">⬅ Volver al inicio</button>
 
     <footer>📍 FermentaPro – Ciencia, técnica y estrategia para panaderos y fermentistas.</footer>
   </div>
