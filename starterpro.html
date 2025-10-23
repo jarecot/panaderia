@@ -1,0 +1,223 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Calculadora FermentaPro – Starter Avanzada</title>
+
+<style>
+  :root {
+    --color-base: #8b5e3c;
+    --color-acento: #d6ad60;
+    --color-fondo: #fffaf2;
+    --color-texto: #3a2e1f;
+  }
+
+  body {
+    font-family: 'Poppins', sans-serif;
+    background-color: var(--color-fondo);
+    color: var(--color-texto);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    min-height: 100vh;
+    margin: 0;
+  }
+
+  .container {
+    background: #ffffff;
+    border-radius: 20px;
+    box-shadow: 0 6px 16px rgba(0,0,0,0.1);
+    padding: 35px 30px;
+    max-width: 470px;
+    width: 90%;
+    text-align: center;
+  }
+
+  h1 {
+    font-size: 1.5rem;
+    color: var(--color-base);
+    margin-bottom: 10px;
+  }
+
+  p {
+    font-size: 0.9rem;
+    color: #555;
+    margin-bottom: 25px;
+  }
+
+  label {
+    display: block;
+    margin-top: 12px;
+    font-weight: 600;
+    text-align: left;
+  }
+
+  input, select {
+    width: 100%;
+    padding: 10px;
+    margin-top: 4px;
+    border: 1px solid #ccc;
+    border-radius: 8px;
+    font-size: 1rem;
+  }
+
+  button {
+    background-color: var(--color-base);
+    color: white;
+    border: none;
+    border-radius: 10px;
+    padding: 12px 20px;
+    margin-top: 25px;
+    font-size: 1rem;
+    cursor: pointer;
+    transition: background 0.3s;
+    width: 100%;
+  }
+
+  button:hover {
+    background-color: var(--color-acento);
+    color: var(--color-texto);
+  }
+
+  .resultado {
+    background: var(--color-acento);
+    color: var(--color-texto);
+    margin-top: 25px;
+    padding: 15px;
+    border-radius: 10px;
+    font-weight: 600;
+    font-size: 1.05rem;
+    display: none;
+    text-align: left;
+  }
+
+  .detalle {
+    font-size: 0.9rem;
+    color: #333;
+    margin-top: 5px;
+  }
+
+  footer {
+    margin-top: 25px;
+    font-size: 0.8rem;
+    color: #777;
+    text-align: center;
+  }
+</style>
+</head>
+
+<body>
+  <div class="container">
+    <h1>Calculadora de Starter Avanzada</h1>
+    <p>Calcula proporciones, masa madre necesaria e hidratación final de tu prefermento.</p>
+
+    <label for="tipoPrefermento">Selecciona tipo de prefermento:</label>
+    <select id="tipoPrefermento" onchange="aplicarPreset()">
+      <option value="personalizado">🔧 Personalizado</option>
+      <option value="levain">Levain (1:1:1 – 100%)</option>
+      <option value="poolish">Poolish (1:1:1 – 100%)</option>
+      <option value="biga">Biga (1:0.45:0.45 – 45%)</option>
+      <option value="masaMadreSolida">Masa madre sólida (1:0.5:0.5 – 50%)</option>
+      <option value="esponja">Esponja (1:0.6:0.6 – 60%)</option>
+      <option value="levaduraComercial">Prefermento levadura (1:0.7:0.7 – 70%)</option>
+    </select>
+
+    <label for="starterTotal">Cantidad total de starter necesaria (g)</label>
+    <input type="number" id="starterTotal" placeholder="Ej: 100" step="1">
+
+    <label for="proporcion">Proporción (harina:agua:starter madre)</label>
+    <input type="text" id="proporcion" placeholder="Ej: 1:2:2">
+
+    <label for="hidratacionMadre">Hidratación del starter madre (%)</label>
+    <input type="number" id="hidratacionMadre" step="1" placeholder="Ej: 100">
+
+    <button onclick="calcularStarter()">Calcular</button>
+
+    <div class="resultado" id="resultado"></div>
+
+    <footer>📍 FermentaPro – Ciencia, técnica y estrategia para panaderos y fermentistas.</footer>
+  </div>
+
+  <script>
+    function aplicarPreset() {
+      const tipo = document.getElementById("tipoPrefermento").value;
+      const proporcion = document.getElementById("proporcion");
+      const hidratacionMadre = document.getElementById("hidratacionMadre");
+
+      switch (tipo) {
+        case "levain":
+        case "poolish":
+          proporcion.value = "1:1:1";
+          hidratacionMadre.value = 100;
+          break;
+        case "biga":
+          proporcion.value = "1:0.45:0.45";
+          hidratacionMadre.value = 45;
+          break;
+        case "masaMadreSolida":
+          proporcion.value = "1:0.5:0.5";
+          hidratacionMadre.value = 50;
+          break;
+        case "esponja":
+          proporcion.value = "1:0.6:0.6";
+          hidratacionMadre.value = 60;
+          break;
+        case "levaduraComercial":
+          proporcion.value = "1:0.7:0.7";
+          hidratacionMadre.value = 70;
+          break;
+        default:
+          proporcion.value = "";
+          hidratacionMadre.value = "";
+      }
+    }
+
+    function calcularStarter() {
+      const total = parseFloat(document.getElementById("starterTotal").value);
+      const proporcion = document.getElementById("proporcion").value.trim();
+      const hidratacionMadre = parseFloat(document.getElementById("hidratacionMadre").value);
+      const resultadoDiv = document.getElementById("resultado");
+
+      if (!total || !proporcion || isNaN(hidratacionMadre)) {
+        alert("Por favor, completa todos los campos requeridos.");
+        return;
+      }
+
+      const partes = proporcion.split(":").map(parseFloat);
+      if (partes.length !== 3 || partes.some(isNaN)) {
+        alert("Formato de proporción inválido. Usa el formato 1:2:2.");
+        return;
+      }
+
+      const totalPartes = partes.reduce((a, b) => a + b, 0);
+      const factor = total / totalPartes;
+
+      const starterMadre = partes[0] * factor;
+      const harina = partes[1] * factor;
+      const agua = partes[2] * factor;
+
+      // Calcular agua y harina provenientes del starter madre
+      const aguaMadre = starterMadre * (hidratacionMadre / (100 + hidratacionMadre));
+      const harinaMadre = starterMadre - aguaMadre;
+
+      const harinaTotal = harina + harinaMadre;
+      const aguaTotal = agua + aguaMadre;
+      const hidratacionFinal = (aguaTotal / harinaTotal) * 100;
+
+      resultadoDiv.style.display = "block";
+      resultadoDiv.innerHTML = `
+        <strong>Resultado del cálculo:</strong><br><br>
+        🌾 Harina nueva: <strong>${harina.toFixed(1)} g</strong><br>
+        💧 Agua nueva: <strong>${agua.toFixed(1)} g</strong><br>
+        🧫 Starter madre: <strong>${starterMadre.toFixed(1)} g</strong><br><br>
+        <div class="detalle">
+          Hidratación final del starter resultante: <strong>${hidratacionFinal.toFixed(1)}%</strong><br>
+          (Incluye harina y agua aportadas por la madre)
+        </div><br>
+        <small>Proporción usada: ${proporcion} – Total ${total} g</small>
+      `;
+    }
+  </script>
+</body>
+</html>
