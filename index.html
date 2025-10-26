@@ -13,6 +13,11 @@
   <!-- jsPDF + autoTable -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.28/jspdf.plugin.autotable.min.js"></script>
+  <!-- Chart.js para gráficos -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+
+  <!-- Manifest PWA (mínimo) -->
+  <link rel="manifest" href="manifest.json">
 </head>
 <body>
   <header>
@@ -22,8 +27,20 @@
   <main>
     <section class="panel">
       <label for="recetaSelect">Seleccionar o agregar receta</label>
-      <div class="actions-row">
+
+      <div class="actions-row" style="align-items:center;">
+        <!-- Search / filter -->
+        <input id="searchRecetas" type="search" placeholder="Buscar recetas (nombre, ingrediente)..." style="flex:1; min-width:200px;">
         <select id="recetaSelect"></select>
+
+        <!-- Sort controls -->
+        <select id="sortField" title="Ordenar por">
+          <option value="nombre">Nombre</option>
+          <option value="createdAt">Fecha creación</option>
+          <option value="updatedAt">Fecha edición</option>
+        </select>
+        <button id="btnSortToggle" class="icon-btn" title="Asc / Desc"><i class="bx bx-sort"></i></button>
+
         <button id="btnEditar" class="icon-btn" title="Editar receta"><i class="bx bx-edit"></i> Editar Receta</button>
         <button id="btnCancelarEdicion" class="icon-btn"><i class="bx bx-x-circle"></i> Cancelar Edición</button>
         <button id="btnEliminar" class="icon-btn danger" title="Eliminar receta"><i class="bx bx-trash"></i></button>
@@ -38,6 +55,12 @@
           <label for="pesoTotal">Peso total de la masa (g)</label>
           <input id="pesoTotal" type="number" min="1" value="1000">
         </div>
+
+        <div>
+          <label for="pesoMultiplier">Multiplicador (ej. 0.5 = mitad, 2 = doble)</label>
+          <input id="pesoMultiplier" type="number" step="0.1" min="0.01" value="1">
+        </div>
+
         <div class="align-bottom">
           <button id="btnRecalcular" class="icon-btn"><i class="bx bx-refresh"></i> Recalcular</button>
         </div>
@@ -60,6 +83,19 @@
         </div>
       </div>
 
+      <!-- Panel técnico: hidratación, salinidad, starter % y gráfico -->
+      <div class="panel" id="panelTecnico" style="margin-top:12px;">
+        <h4><i class="bx bx-bar-chart-alt-2"></i> Análisis técnico</h4>
+        <div id="analisisStats" style="display:flex;gap:12px;flex-wrap:wrap;">
+          <div class="stat">Hidratación: <strong id="statHydration">—</strong></div>
+          <div class="stat">Starter (% masa total): <strong id="statStarterPct">—</strong></div>
+          <div class="stat">Salinidad (estimada): <strong id="statSaltPct">—</strong></div>
+          <div class="stat">Peso efectivo: <strong id="statPesoEfectivo">—</strong></div>
+        </div>
+
+        <canvas id="compoChart" style="max-width:420px; margin-top:12px;"></canvas>
+      </div>
+
       <h3><i class="bx bx-table"></i> Resultado</h3>
       <table>
         <thead>
@@ -73,11 +109,19 @@
 
       <div class="actions-row">
         <button id="btnGuardar" class="icon-btn primary"><i class="bx bx-save"></i> Guardar / Actualizar</button>
+        <button id="btnDuplicar" class="icon-btn"><i class="bx bx-copy"></i> Duplicar</button>
         <button id="btnExportar" class="icon-btn"><i class="bx bx-export"></i> Exportar PDF</button>
+        <button id="btnExportCSV" class="icon-btn"><i class="bx bx-file"></i> Exportar CSV</button>
         <button id="btnLimpiar" class="icon-btn"><i class="bx bx-eraser"></i> Limpiar</button>
       </div>
+
+      <!-- Auth / PWA / UI tools -->
+      <div class="actions-row" style="margin-top:12px;">
+        <button id="btnSigninGoogle" class="icon-btn"><i class="bx bxl-google"></i> Iniciar sesión (Google)</button>
+        <button id="btnToggleTheme" class="icon-btn"><i class="bx bx-moon"></i> Tema</button>
+        <button id="btnInstallPWA" class="icon-btn"><i class="bx bx-down-arrow-circle"></i> Instalar App</button>
+      </div>
     </section>
-  </main>
 
      <!-- Enlace a la calculadora de hidratación -->
     <section class="panel">
@@ -92,7 +136,7 @@
       </div>
     </section>
 
-  
+  </main>
 
   <footer>
     <small>Hecho con <i class="bx bxs-heart"></i> para panaderos</small>
@@ -103,11 +147,3 @@
 </body>
 
 </html>
-
-
-
-
-
-
-
-

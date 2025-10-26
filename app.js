@@ -1,10 +1,10 @@
-
 // ==================== Firebase ====================
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
-import { getAuth, signInAnonymously } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
+import { getAuth, signInAnonymously, GoogleAuthProvider, signInWithPopup } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
 import {
   getFirestore, collection, addDoc, getDocs,
-  updateDoc, deleteDoc, doc, getDoc, setDoc
+  updateDoc, deleteDoc, doc, getDoc, setDoc,
+  serverTimestamp, arrayUnion
 } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
 // ================== CONFIG FIREBASE ==================
@@ -22,7 +22,7 @@ const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
 const auth = getAuth(app);
 
-// Sign in anonymously
+// Sign in anonymously by default
 signInAnonymously(auth)
   .then(userCredential => {
     console.log("Signed in anonymously:", userCredential.user.uid);
@@ -38,6 +38,7 @@ const nombreRecetaContainer = document.getElementById("nombreRecetaContainer");
 const instrAmasadoContainer = document.getElementById("instrAmasadoContainer");
 const instrHorneadoContainer = document.getElementById("instrHorneadoContainer");
 const pesoTotalInput = document.getElementById("pesoTotal");
+const pesoMultiplierInput = document.getElementById("pesoMultiplier");
 
 const btnAgregarIngrediente = document.getElementById("btnAgregarIngrediente");
 const btnGuardar = document.getElementById("btnGuardar");
@@ -53,27 +54,73 @@ const ingredientesDiv = document.getElementById("ingredientes");
 const tablaIngredientes = document.getElementById("tablaIngredientes");
 const sumGramsEl = document.getElementById("sumGrams");
 
+const statHydration = document.getElementById("statHydration");
+const statStarterPct = document.getElementById("statStarterPct");
+const statSaltPct = document.getElementById("statSaltPct");
+const statPesoEfectivo = document.getElementById("statPesoEfectivo");
+const compoChartEl = document.getElementById("compoChart");
+
+const searchRecetas = document.getElementById("searchRecetas");
+const sortField = document.getElementById("sortField");
+const btnSortToggle = document.getElementById("btnSortToggle");
+const btnDuplicar = document.getElementById("btnDuplicar");
+const btnExportCSV = document.getElementById("btnExportCSV");
+const btnSigninGoogle = document.getElementById("btnSigninGoogle");
+const btnToggleTheme = document.getElementById("btnToggleTheme");
+const btnInstallPWA = document.getElementById("btnInstallPWA");
+
 let ingredientes = [];
 let recetaIdActual = null;
 let isEditMode = true; // Inicia en edición para nuevas recetas
 
+// Data cache for recipes with metadata loaded from Firestore
+let recetasCache = []; // { id, data }
+
+// Sort order: true = ascending, false = descending
+let sortAsc = true;
+
+// Chart variable
+let compoChart = null;
+
+// ---------------- Utilities ----------------
+function getEffectivePesoTotal() {
+  const base = parseFloat(pesoTotalInput.value) || 0;
+  const mult = parseFloat(pesoMultiplierInput.value) || 1;
+  return base * mult;
+}
+
+// Heurística simple para detectar harina / agua / sal / starter por nombre (case-insensitive)
+function classifyIngredientName(name = "") {
+  const n = (name || "").toLowerCase();
+  if (n.includes("harina") || n.includes("flour") || n.includes("integral") || n.includes("whole")) return "flour";
+  if (n.includes("agua") || n.includes("water") || n.includes("agua mineral")) return "water";
+  if (n.includes("sal")) return "salt";
+  if (n.includes("starter") || n.includes("masa") || n.includes("sourdough") || n.includes("levain") || n.includes("masa madre")) return "starter";
+  if (n.includes("levadura") || n.includes("yeast")) return "yeast";
+  return "other";
+}
+
+// ------------------- CÁLCULOS Y RENDER -------------------
+
 // --- Función: recalcular pesos ---
 function calcularPesos() {
-  const pesoTotal = parseFloat(pesoTotalInput.value) || 0;
+  const pesoTotalEfectivo = getEffectivePesoTotal();
   tablaIngredientes.innerHTML = "";
 
-  if (!ingredientes.length || pesoTotal <= 0) {
+  if (!ingredientes.length || pesoTotalEfectivo <= 0) {
     sumGramsEl.textContent = "0 g";
+    actualizarStats(); // limpiar
     return;
   }
 
   const sumPerc = ingredientes.reduce((acc, ing) => acc + (parseFloat(ing.porcentaje) || 0), 0);
   if (sumPerc <= 0) {
     sumGramsEl.textContent = "0 g";
+    actualizarStats();
     return;
   }
 
-  const flourWeight = (pesoTotal * 100) / sumPerc;
+  const flourWeight = (pesoTotalEfectivo * 100) / sumPerc;
 
   ingredientes.forEach(ing => {
     ing._raw = (parseFloat(ing.porcentaje) || 0) / 100 * flourWeight;
@@ -85,7 +132,7 @@ function calcularPesos() {
     totalRounded += ing._grams;
   });
 
-  const delta = Math.round(pesoTotal) - totalRounded;
+  const delta = Math.round(pesoTotalEfectivo) - totalRounded;
   if (delta !== 0) {
     let flourIdx = ingredientes.findIndex(it => Math.abs(it.porcentaje - 100) < 1e-6);
     if (flourIdx === -1) {
@@ -110,6 +157,78 @@ function calcularPesos() {
   });
 
   sumGramsEl.textContent = totalRounded + " g";
+
+  // actualizar estadísticas y gráfico
+  actualizarStats();
+}
+
+// Actualiza las estadísticas técnicas (hidratación, starter, sal)
+function actualizarStats() {
+  // asegurarse de tener _grams calculados
+  const totalPeso = ingredientes.reduce((s, it) => s + (it._grams || 0), 0);
+
+  let flourW = 0, waterW = 0, starterW = 0, saltW = 0;
+  ingredientes.forEach(it => {
+    const cls = classifyIngredientName(it.nombre);
+    const grams = it._grams || 0;
+    if (cls === "flour") flourW += grams;
+    else if (cls === "water") waterW += grams;
+    else if (cls === "starter") starterW += grams;
+    else if (cls === "salt") saltW += grams;
+    else {
+      // intentar nombres conteniendo agua/harina/sal etc.
+      if (/agua|water/i.test(it.nombre)) waterW += grams;
+      if (/harina|flour/i.test(it.nombre)) flourW += grams;
+      if (/sal/i.test(it.nombre)) saltW += grams;
+    }
+  });
+
+  // Hidratación: water / flour * 100
+  let hydrationPct = (flourW > 0) ? (waterW / flourW) * 100 : NaN;
+  statHydration.textContent = isFinite(hydrationPct) ? hydrationPct.toFixed(1) + "%" : "—";
+
+  // Starter porcentaje respecto al total de masa efectiva
+  const pesoEfectivo = getEffectivePesoTotal();
+  const starterPct = pesoEfectivo > 0 ? (starterW / pesoEfectivo) * 100 : NaN;
+  statStarterPct.textContent = isFinite(starterPct) ? starterPct.toFixed(2) + "%" : "—";
+
+  // Salinidad estimada: sal / flour * 100 (como % de harina) -> convertir a % sobre total masa aproxim.
+  const salSobreHarina = flourW > 0 ? (saltW / flourW) * 100 : NaN;
+  statSaltPct.textContent = isFinite(salSobreHarina) ? salSobreHarina.toFixed(2) + "% (sobre harina)" : "—";
+
+  statPesoEfectivo.textContent = Math.round(pesoEfectivo) + " g";
+
+  // Construir datos para el gráfico: Harina / Agua / Sal / Starter / Otros (en gramos)
+  const otros = Math.max(0, totalPeso - (flourW + waterW + saltW + starterW));
+  const labels = ["Harina", "Agua", "Sal", "Starter", "Otros"];
+  const data = [flourW, waterW, saltW, starterW, otros];
+
+  renderCompoChart(labels, data);
+}
+
+// Renderizar gráfico (dona)
+function renderCompoChart(labels, data) {
+  if (compoChart) {
+    compoChart.data.labels = labels;
+    compoChart.data.datasets[0].data = data;
+    compoChart.update();
+    return;
+  }
+  compoChart = new Chart(compoChartEl.getContext("2d"), {
+    type: "doughnut",
+    data: {
+      labels,
+      datasets: [{
+        data,
+        /* dejar colores por defecto (no forzamos colores) */
+      }]
+    },
+    options: {
+      plugins: {
+        legend: { position: "bottom" }
+      }
+    }
+  });
 }
 
 // --- Añadir ingrediente ---
@@ -276,19 +395,45 @@ async function cancelarEdicion() {
 }
 
 // --- Guardar receta ---
+// Ahora guarda createdAt/updatedAt y versiones (historial)
 async function guardarReceta() {
   const receta = {
     nombre: nombreRecetaContainer.dataset.value,
     pesoTotal: Number(pesoTotalInput.value),
+    pesoMultiplier: Number(pesoMultiplierInput.value) || 1,
     instrAmasado: instrAmasadoContainer.dataset.value,
     instrHorneado: instrHorneadoContainer.dataset.value,
-    ingredientes
+    ingredientes,
+    updatedAt: serverTimestamp()
   };
 
   if (recetaIdActual) {
     if (confirm("¿Quieres actualizar la receta existente?")) {
       try {
-        await setDoc(doc(db, "recetas", recetaIdActual), receta);
+        // Antes de sobrescribir, obtenemos versión actual para guardar en historial
+        const docRef = doc(db, "recetas", recetaIdActual);
+        const snapshot = await getDoc(docRef);
+        if (snapshot.exists()) {
+          const dataPrev = snapshot.data();
+          // crear un objeto de versión básico
+          const versionObj = {
+            savedAt: dataPrev.updatedAt || dataPrev.createdAt || serverTimestamp(),
+            snapshot: {
+              nombre: dataPrev.nombre,
+              pesoTotal: dataPrev.pesoTotal,
+              pesoMultiplier: dataPrev.pesoMultiplier || 1,
+              instrAmasado: dataPrev.instrAmasado,
+              instrHorneado: dataPrev.instrHorneado,
+              ingredientes: dataPrev.ingredientes
+            }
+          };
+          // agregar versión al array 'versions' usando arrayUnion
+          await updateDoc(docRef, {
+            versions: arrayUnion(versionObj)
+          });
+        }
+        // ahora actualizar con nuevo contenido (setDoc sobrescribe, usamos setDoc con merge true)
+        await setDoc(doc(db, "recetas", recetaIdActual), { ...receta }, { merge: true });
         alert("✅ Receta actualizada correctamente");
         isEditMode = false; // Salir del modo edición tras guardar
       } catch (error) {
@@ -301,8 +446,13 @@ async function guardarReceta() {
     }
   } else {
     try {
-      await addDoc(collection(db, "recetas"), receta);
+      const newRef = await addDoc(collection(db, "recetas"), {
+        ...receta,
+        createdAt: serverTimestamp(),
+        versions: []
+      });
       alert("✅ Nueva receta guardada");
+      recetaIdActual = newRef.id;
       isEditMode = false; // Salir del modo edición tras guardar
     } catch (error) {
       console.error("Error saving new recipe:", error);
@@ -317,20 +467,62 @@ async function guardarReceta() {
 async function cargarRecetas() {
   console.log("Loading recipes...");
   recetaSelect.innerHTML = `<option value="">-- Agregar una receta ➕🥐 --</option>`;
+  recetasCache = [];
   try {
     const snapshot = await getDocs(collection(db, "recetas"));
     snapshot.forEach(docSnap => {
+      const data = docSnap.data();
+      recetasCache.push({ id: docSnap.id, data });
       const opt = document.createElement("option");
       opt.value = docSnap.id;
-      opt.textContent = docSnap.data().nombre || "Receta sin nombre";
+      opt.textContent = data.nombre || "Receta sin nombre";
       recetaSelect.appendChild(opt);
       console.log("Added recipe to dropdown:", docSnap.id, docSnap.data().nombre);
     });
     console.log("Recipes loaded successfully, count:", snapshot.size);
+    applySearchSortRender();
   } catch (error) {
     console.error("Error loading recipes:", error);
     alert("❌ Error al cargar las recetas");
   }
+}
+
+// Apply search and sorting, then render the select options
+function applySearchSortRender() {
+  // filtrado
+  const q = (searchRecetas.value || "").toLowerCase().trim();
+  let results = recetasCache.filter(r => {
+    if (!q) return true;
+    const n = (r.data.nombre || "").toLowerCase();
+    const ingreds = (r.data.ingredientes || []).map(i => (i.nombre||"").toLowerCase()).join(" ");
+    return n.includes(q) || ingreds.includes(q);
+  });
+
+  // ordenar
+  const field = sortField.value || "nombre";
+  results.sort((a,b) => {
+    let va = a.data[field];
+    let vb = b.data[field];
+    // si son timestamps (Firestore), van a ser objetos; convertir a número si es posible
+    if (va && typeof va.toMillis === "function") va = va.toMillis();
+    if (vb && typeof vb.toMillis === "function") vb = vb.toMillis();
+    if (field === "nombre") {
+      va = (va || "").toLowerCase();
+      vb = (vb || "").toLowerCase();
+    }
+    if (va < vb) return sortAsc ? -1 : 1;
+    if (va > vb) return sortAsc ? 1 : -1;
+    return 0;
+  });
+
+  // render select
+  recetaSelect.innerHTML = `<option value="">-- Agregar una receta ➕🥐 --</option>`;
+  results.forEach(r => {
+    const opt = document.createElement("option");
+    opt.value = r.id;
+    opt.textContent = r.data.nombre || "Receta sin nombre";
+    recetaSelect.appendChild(opt);
+  });
 }
 
 // --- Cargar receta ---
@@ -348,9 +540,10 @@ async function cargarReceta(id) {
       console.log("Recipe data fetched:", data);
       nombreRecetaContainer.dataset.value = data.nombre || "";
       pesoTotalInput.value = data.pesoTotal || 1000;
+      pesoMultiplierInput.value = data.pesoMultiplier || 1;
       instrAmasadoContainer.dataset.value = data.instrAmasado || "";
       instrHorneadoContainer.dataset.value = data.instrHorneado || "";
-      ingredientes = data.ingredientes || [];
+      ingredientes = (data.ingredientes || []).map(it => ({ ...it })); // clone
       recetaIdActual = id;
       isEditMode = false; // Carga en modo vista
       renderAll();
@@ -363,6 +556,45 @@ async function cargarReceta(id) {
   } catch (error) {
     console.error("Error loading recipe:", error);
     alert("❌ Error al cargar la receta");
+  }
+}
+
+// --- Duplicar receta ---
+async function duplicarReceta() {
+  if (!recetaIdActual) {
+    alert("Selecciona una receta existente para duplicar.");
+    return;
+  }
+  try {
+    const docRef = doc(db, "recetas", recetaIdActual);
+    const snapshot = await getDoc(docRef);
+    if (!snapshot.exists()) {
+      alert("La receta ya no existe.");
+      return;
+    }
+    const data = snapshot.data();
+    // Modificar nombre para indicar copia
+    const nameCopy = (data.nombre || "Receta") + " (copia)";
+    const newData = {
+      ...data,
+      nombre: nameCopy,
+      createdAt: serverTimestamp(),
+      updatedAt: serverTimestamp(),
+      versions: []
+    };
+    // remover id si existe
+    delete newData.id;
+    const newRef = await addDoc(collection(db, "recetas"), newData);
+    alert("✅ Receta duplicada: " + nameCopy);
+    await cargarRecetas();
+    // seleccionar la nueva receta
+    recetaSelect.value = newRef.id;
+    cargarReceta(newRef.id);
+    isEditMode = true; // abrir para edición por si quieren ajustar
+    renderAll();
+  } catch (err) {
+    console.error("Error duplicating:", err);
+    alert("❌ Error al duplicar la receta");
   }
 }
 
@@ -388,6 +620,7 @@ function limpiarFormulario() {
   console.log("Clearing form");
   nombreRecetaContainer.dataset.value = "";
   pesoTotalInput.value = 1000;
+  pesoMultiplierInput.value = 1;
   instrAmasadoContainer.dataset.value = "";
   instrHorneadoContainer.dataset.value = "";
   ingredientes = [];
@@ -410,7 +643,7 @@ function exportarPDF() {
   if (pesoTotalInput.value) {
     doc.setFontSize(12);
     doc.setFont("helvetica", "normal");
-    doc.text(`Peso total de la masa: ${pesoTotalInput.value} g`, 14, 30);
+    doc.text(`Peso total de la masa: ${pesoTotalInput.value} g (×${(pesoMultiplierInput.value||1)})`, 14, 30);
   }
 
   // --- Tabla ingredientes ---
@@ -475,6 +708,24 @@ function exportarPDF() {
   doc.save((nombreRecetaContainer.dataset.value || "receta") + ".pdf");
 }
 
+// --- Exportar CSV (simple) ---
+function exportarCSV() {
+  const rows = [
+    ["Ingrediente", "% Panadero", "Peso (g)"],
+    ...ingredientes.map(i => [i.nombre, (parseFloat(i.porcentaje)||0).toFixed(2), (i._grams||0)])
+  ];
+  const csv = rows.map(r => r.map(cell => `"${String(cell).replace(/"/g,'""')}"`).join(",")).join("\n");
+  const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = (nombreRecetaContainer.dataset.value || "receta") + ".csv";
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+}
+
 // --- Eventos ---
 btnAgregarIngrediente.addEventListener("click", () => addIngredient());
 btnGuardar.addEventListener("click", guardarReceta);
@@ -493,10 +744,93 @@ btnCancelarEdicion.addEventListener("click", cancelarEdicion);
 pesoTotalInput.addEventListener("input", () => {
   calcularPesos();
 });
+pesoMultiplierInput.addEventListener("input", () => {
+  calcularPesos();
+});
 recetaSelect.addEventListener("change", (e) => {
   console.log("recetaSelect changed, value:", e.target.value);
   cargarReceta(e.target.value);
 });
+searchRecetas.addEventListener("input", () => applySearchSortRender());
+sortField.addEventListener("change", () => applySearchSortRender());
+btnSortToggle.addEventListener("click", () => {
+  sortAsc = !sortAsc;
+  btnSortToggle.classList.toggle("active", sortAsc);
+  applySearchSortRender();
+});
+btnDuplicar.addEventListener("click", duplicarReceta);
+btnExportCSV.addEventListener("click", exportarCSV);
+
+// Google sign-in (opcional): sincroniza con cuenta Google
+btnSigninGoogle.addEventListener("click", async () => {
+  const provider = new GoogleAuthProvider();
+  try {
+    const result = await signInWithPopup(auth, provider);
+    console.log("Signed in with Google:", result.user.email);
+    alert("Sesión iniciada como: " + result.user.email);
+  } catch (err) {
+    console.error("Google sign-in error:", err);
+    alert("Error al iniciar sesión con Google.");
+  }
+});
+
+// Theme toggle (dark/light)
+function applySavedTheme() {
+  const t = localStorage.getItem("fermentapro_theme") || "light";
+  if (t === "dark") document.body.classList.add("dark");
+  else document.body.classList.remove("dark");
+}
+btnToggleTheme.addEventListener("click", () => {
+  document.body.classList.toggle("dark");
+  const now = document.body.classList.contains("dark") ? "dark" : "light";
+  localStorage.setItem("fermentapro_theme", now);
+});
+applySavedTheme();
+
+// PWA: instalar handler (prompt)
+let deferredPrompt = null;
+window.addEventListener('beforeinstallprompt', (e) => {
+  e.preventDefault();
+  deferredPrompt = e;
+  btnInstallPWA.style.display = 'inline-flex';
+});
+btnInstallPWA.addEventListener('click', async () => {
+  if (deferredPrompt) {
+    deferredPrompt.prompt();
+    const choice = await deferredPrompt.userChoice;
+    console.log('User choice', choice);
+    deferredPrompt = null;
+  } else {
+    alert("La instalación PWA no está disponible en este navegador/contexto.");
+  }
+});
+
+// Service Worker (se registra desde Blob para no necesitar archivo externo)
+if ('serviceWorker' in navigator) {
+  const swCode = `
+    const CACHE_NAME = 'fermentapro-v1';
+    const toCache = [ '/', '/index.html' ];
+    self.addEventListener('install', (e) => {
+      self.skipWaiting();
+      e.waitUntil(
+        caches.open(CACHE_NAME).then(cache => cache.addAll(toCache))
+      );
+    });
+    self.addEventListener('activate', (e) => {
+      e.waitUntil(self.clients.claim());
+    });
+    self.addEventListener('fetch', (e) => {
+      e.respondWith(
+        caches.match(e.request).then(resp => resp || fetch(e.request))
+      );
+    });
+  `;
+  const blob = new Blob([swCode], { type: 'application/javascript' });
+  const swUrl = URL.createObjectURL(blob);
+  navigator.serviceWorker.register(swUrl).then(() => {
+    console.log("Service worker registrado (Blob) — PWA básico listo.");
+  }).catch(err => console.warn("SW registro falló:", err));
+}
 
 // Inicializar
 cargarRecetas();
