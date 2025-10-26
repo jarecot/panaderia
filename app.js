@@ -55,10 +55,13 @@ const tablaIngredientes = document.getElementById("tablaIngredientes");
 const sumGramsEl = document.getElementById("sumGrams");
 
 const statHydration = document.getElementById("statHydration");
+const statHydrationAdditional = document.getElementById("statHydrationAdditional");
+const statHydrationTotal = document.getElementById("statHydrationTotal");
 const statStarterPct = document.getElementById("statStarterPct");
 const statSaltPct = document.getElementById("statSaltPct");
 const statPesoEfectivo = document.getElementById("statPesoEfectivo");
-// NOTE: removed compoChartEl and any chart references
+
+const starterHydrationInput = document.getElementById("starterHydration");
 
 const searchRecetas = document.getElementById("searchRecetas");
 const sortField = document.getElementById("sortField");
@@ -86,16 +89,29 @@ function getEffectivePesoTotal() {
   return base * mult;
 }
 
-// Heurística simple para detectar harina / agua / sal / starter por nombre (case-insensitive)
+// Heurística para detectar categorías por nombre (case-insensitive)
 function classifyIngredientName(name = "") {
   const n = (name || "").toLowerCase();
   if (n.includes("harina") || n.includes("flour") || n.includes("integral") || n.includes("whole")) return "flour";
   if (n.includes("agua") || n.includes("water") || n.includes("agua mineral")) return "water";
+  if (n.includes("leche") || n.includes("milk")) return "milk";
+  if (n.includes("huevo") || n.includes("egg")) return "egg";
+  if (n.includes("mantequilla") || n.includes("butter")) return "butter";
+  if (n.includes("yogur") || n.includes("yoghurt") || n.includes("yogurt") || n.includes("crema")) return "yogurt";
+  if (n.includes("masa madre") || n.includes("starter") || n.includes("levain") || n.includes("sourdough")) return "starter";
   if (n.includes("sal")) return "salt";
-  if (n.includes("starter") || n.includes("masa") || n.includes("sourdough") || n.includes("levain") || n.includes("masa madre")) return "starter";
   if (n.includes("levadura") || n.includes("yeast")) return "yeast";
   return "other";
 }
+
+// Map de contenido de agua aproximado por ingrediente (fracción)
+const WATER_CONTENT = {
+  milk: 0.87,
+  egg: 0.74,
+  butter: 0.16,
+  yogurt: 0.80,
+  // other types: fallback handled below
+};
 
 // ------------------- CÁLCULOS Y RENDER -------------------
 
@@ -164,38 +180,70 @@ function actualizarStats() {
   // asegurarse de tener _grams calculados
   const totalPeso = ingredientes.reduce((s, it) => s + (it._grams || 0), 0);
 
-  let flourW = 0, waterW = 0, starterW = 0, saltW = 0;
+  // Sumas base
+  let flourW = 0, waterDirectW = 0, milkW = 0, eggW = 0, butterW = 0, yogurtW = 0, starterW = 0, saltW = 0;
+  let otrosW = 0;
+
   ingredientes.forEach(it => {
-    const cls = classifyIngredientName(it.nombre);
     const grams = it._grams || 0;
+    const cls = classifyIngredientName(it.nombre);
     if (cls === "flour") flourW += grams;
-    else if (cls === "water") waterW += grams;
+    else if (cls === "water") waterDirectW += grams;
+    else if (cls === "milk") milkW += grams;
+    else if (cls === "egg") eggW += grams;
+    else if (cls === "butter") butterW += grams;
+    else if (cls === "yogurt") yogurtW += grams;
     else if (cls === "starter") starterW += grams;
     else if (cls === "salt") saltW += grams;
-    else {
-      // intentar nombres conteniendo agua/harina/sal etc.
-      if (/agua|water/i.test(it.nombre)) waterW += grams;
-      if (/harina|flour/i.test(it.nombre)) flourW += grams;
-      if (/sal/i.test(it.nombre)) saltW += grams;
-    }
+    else otrosW += grams;
   });
 
-  // Hidratación: water / flour * 100
-  let hydrationPct = (flourW > 0) ? (waterW / flourW) * 100 : NaN;
-  statHydration.textContent = isFinite(hydrationPct) ? hydrationPct.toFixed(1) + "%" : "—";
+  // Leer hidratación del starter desde input; si no presente, asumir 100%
+  const starterHydrationInputVal = parseFloat((starterHydrationInput && starterHydrationInput.value) || 100) || 100;
 
-  // Starter porcentaje respecto al total de masa efectiva
+  // Calcular agua proveniente de starter según hidratación: 
+  // si starterH = H %, por cada g de starter:
+  // flour_in_starter = g * (100 / (100 + H))
+  // water_in_starter = g - flour_in_starter = g * (H / (100 + H))
+  const H = starterHydrationInputVal;
+  const starterWater = starterW * (H / (100 + H));
+  const starterFlourEquivalent = starterW - starterWater;
+
+  // Agua de otros ingredientes usando WATER_CONTENT estimado
+  const milkWater = milkW * WATER_CONTENT.milk;
+  const eggWater = eggW * WATER_CONTENT.egg;
+  const butterWater = butterW * WATER_CONTENT.butter;
+  const yogurtWater = yogurtW * WATER_CONTENT.yogurt;
+
+  // Si hay ingredientes "otros" que posiblemente contengan agua (por ejemplo frutas, miel...) no se cuentan por defecto.
+  // Podríamos intentar estimar algunos por nombre, pero por ahora quedan en "otrosW".
+
+  // Harina total efectiva (incluye la parte de harina "interna" del starter)
+  const harinaTotal = flourW + starterFlourEquivalent;
+
+  // Hidrataciones:
+  const aguaDirect = waterDirectW; // agua añadida directamente
+  const aguaDesdeOtros = milkWater + eggWater + butterWater + yogurtWater; // aportes líquidos medidos
+  const aguaDesdeStarter = starterWater;
+
+  const hidrPrincipal = harinaTotal > 0 ? (aguaDirect / harinaTotal) * 100 : NaN;
+  const hidrAdicional = harinaTotal > 0 ? ((aguaDesdeOtros + aguaDesdeStarter) / harinaTotal) * 100 : NaN;
+  const hidrTotal = harinaTotal > 0 ? ((aguaDirect + aguaDesdeOtros + aguaDesdeStarter) / harinaTotal) * 100 : NaN;
+
+  // Salinidad (sal / harina *100)
+  const salSobreHarina = harinaTotal > 0 ? (saltW / harinaTotal) * 100 : NaN;
+
+  // Starter proporción sobre masa efectiva
   const pesoEfectivo = getEffectivePesoTotal();
   const starterPct = pesoEfectivo > 0 ? (starterW / pesoEfectivo) * 100 : NaN;
-  statStarterPct.textContent = isFinite(starterPct) ? starterPct.toFixed(2) + "%" : "—";
 
-  // Salinidad estimada: sal / flour * 100 (como % de harina) -> convertir a % sobre total masa aproxim.
-  const salSobreHarina = flourW > 0 ? (saltW / flourW) * 100 : NaN;
+  // Actualizar UI (formatos)
+  statHydration.textContent = isFinite(hidrPrincipal) ? hidrPrincipal.toFixed(1) + "%" : "—";
+  statHydrationAdditional.textContent = isFinite(hidrAdicional) ? hidrAdicional.toFixed(1) + "%" : "—";
+  statHydrationTotal.textContent = isFinite(hidrTotal) ? hidrTotal.toFixed(1) + "%" : "—";
   statSaltPct.textContent = isFinite(salSobreHarina) ? salSobreHarina.toFixed(2) + "% (sobre harina)" : "—";
-
   statPesoEfectivo.textContent = Math.round(pesoEfectivo) + " g";
-
-  // Note: gráfico eliminado, por lo tanto no hay renderCompoChart(...) aquí
+  statStarterPct.textContent = isFinite(starterPct) ? starterPct.toFixed(2) + "%" : "—";
 }
 
 // --- Añadir ingrediente ---
@@ -368,6 +416,7 @@ async function guardarReceta() {
     nombre: nombreRecetaContainer.dataset.value,
     pesoTotal: Number(pesoTotalInput.value),
     pesoMultiplier: Number(pesoMultiplierInput.value) || 1,
+    starterHidratacion: Number((starterHydrationInput && starterHydrationInput.value) || 100),
     instrAmasado: instrAmasadoContainer.dataset.value,
     instrHorneado: instrHorneadoContainer.dataset.value,
     ingredientes,
@@ -389,6 +438,7 @@ async function guardarReceta() {
               nombre: dataPrev.nombre,
               pesoTotal: dataPrev.pesoTotal,
               pesoMultiplier: dataPrev.pesoMultiplier || 1,
+              starterHidratacion: dataPrev.starterHidratacion || 100,
               instrAmasado: dataPrev.instrAmasado,
               instrHorneado: dataPrev.instrHorneado,
               ingredientes: dataPrev.ingredientes
@@ -508,6 +558,7 @@ async function cargarReceta(id) {
       nombreRecetaContainer.dataset.value = data.nombre || "";
       pesoTotalInput.value = data.pesoTotal || 1000;
       pesoMultiplierInput.value = data.pesoMultiplier || 1;
+      starterHydrationInput.value = data.starterHidratacion || 100;
       instrAmasadoContainer.dataset.value = data.instrAmasado || "";
       instrHorneadoContainer.dataset.value = data.instrHorneado || "";
       ingredientes = (data.ingredientes || []).map(it => ({ ...it })); // clone
@@ -588,6 +639,7 @@ function limpiarFormulario() {
   nombreRecetaContainer.dataset.value = "";
   pesoTotalInput.value = 1000;
   pesoMultiplierInput.value = 1;
+  starterHydrationInput.value = 100;
   instrAmasadoContainer.dataset.value = "";
   instrHorneadoContainer.dataset.value = "";
   ingredientes = [];
@@ -611,6 +663,7 @@ function exportarPDF() {
     doc.setFontSize(12);
     doc.setFont("helvetica", "normal");
     doc.text(`Peso total de la masa: ${pesoTotalInput.value} g (×${(pesoMultiplierInput.value||1)})`, 14, 30);
+    doc.text(`Starter hidratación: ${starterHydrationInput.value || 100}%`, 14, 36);
   }
 
   // --- Tabla ingredientes ---
@@ -621,7 +674,7 @@ function exportarPDF() {
   ]);
 
   doc.autoTable({
-    startY: 40,
+    startY: 46,
     head: [["Ingrediente", "% Panadero", "Peso (g)"]],
     body,
     theme: "grid",
@@ -759,9 +812,9 @@ let deferredPrompt = null;
 window.addEventListener('beforeinstallprompt', (e) => {
   e.preventDefault();
   deferredPrompt = e;
-  btnInstallPWA.style.display = 'inline-flex';
+  if (btnInstallPWA) btnInstallPWA.style.display = 'inline-flex';
 });
-btnInstallPWA.addEventListener('click', async () => {
+if (btnInstallPWA) btnInstallPWA.addEventListener('click', async () => {
   if (deferredPrompt) {
     deferredPrompt.prompt();
     const choice = await deferredPrompt.userChoice;
