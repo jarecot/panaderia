@@ -13,10 +13,10 @@
   <!-- jsPDF + autoTable -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.28/jspdf.plugin.autotable.min.js"></script>
-  <!-- Chart.js para gráficos 
-  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script> -->
 
-  <!-- Manifest PWA (opcional si lo vas a proveer) -->
+  <!-- ❌ Chart.js eliminado para ocultar el gráfico -->
+  <!-- <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script> -->
+
   <link rel="manifest" href="manifest.json">
 </head>
 <body>
@@ -29,11 +29,9 @@
       <label for="recetaSelect">Seleccionar o agregar receta</label>
 
       <div class="actions-row" style="align-items:center;">
-        <!-- Search / filter -->
         <input id="searchRecetas" type="search" placeholder="Buscar recetas (nombre, ingrediente)..." style="flex:1; min-width:200px;">
         <select id="recetaSelect"></select>
 
-        <!-- Sort controls -->
         <select id="sortField" title="Ordenar por">
           <option value="nombre">Nombre</option>
           <option value="createdAt">Fecha creación</option>
@@ -46,11 +44,8 @@
         <button id="btnEliminar" class="icon-btn danger" title="Eliminar receta"><i class="bx bx-trash"></i></button>
       </div>
 
-      <div id="nombreRecetaContainer">
-        <!-- Aquí se renderiza nombre como input o texto -->
-      </div>
+      <div id="nombreRecetaContainer"></div>
 
-      <!-- Aquí aplicamos la clase form-row para evitar solapamiento en pantallas grandes -->
       <div class="form-row">
         <div>
           <label for="pesoTotal">Peso total de la masa (g)</label>
@@ -68,13 +63,8 @@
       </div>
 
       <h3><i class="bx bx-notepad"></i> Instrucciones</h3>
-      <div id="instrAmasadoContainer">
-        <!-- Aquí se renderiza como textarea o p -->
-      </div>
-
-      <div id="instrHorneadoContainer">
-        <!-- Aquí se renderiza como textarea o p -->
-      </div>
+      <div id="instrAmasadoContainer"></div>
+      <div id="instrHorneadoContainer"></div>
 
       <div id="ingredientesSection">
         <h3><i class="bx bx-bowl-hot"></i> Ingredientes (% panadero)</h3>
@@ -93,6 +83,7 @@
           <div class="stat">Peso efectivo: <strong id="statPesoEfectivo">—</strong></div>
         </div>
 
+        <!-- ❌ Eliminado el gráfico de dona -->
         <!-- <canvas id="compoChart" style="max-width:420px; margin-top:12px;"></canvas> -->
       </div>
 
@@ -103,7 +94,7 @@
         </thead>
         <tbody id="tablaIngredientes"></tbody>
         <tfoot>
-          <tr><th>Total</th><th> </th><th id="sumGrams">--</th></tr>
+          <tr><th>Total</th><th></th><th id="sumGrams">--</th></tr>
         </tfoot>
       </table>
 
@@ -122,27 +113,19 @@
       </div>
     </section>
 
-     <!-- Enlace a la calculadora de hidratación -->
     <section class="panel">
       <h3><i class="bx bx-droplet"></i> Herramientas adicionales</h3>
       <div class="actions-row">
-        <a href="hidratacion.html" class="icon-btn primary" title="Ir a la calculadora de hidratación">
-          <i class="bx bx-water"></i> Calculadora de Hidratación
-        </a>
-        <a href="starterpro.html" class="icon-btn primary" title="Ir a la calculadora de starter">
-          <i class="bx bx-flask-round"></i> Calculadora de Starter
-        </a>
+        <a href="hidratacion.html" class="icon-btn primary"><i class="bx bx-water"></i> Calculadora de Hidratación</a>
+        <a href="starterpro.html" class="icon-btn primary"><i class="bx bx-flask-round"></i> Calculadora de Starter</a>
       </div>
     </section>
-
   </main>
 
   <footer>
     <small>Hecho con <i class="bx bxs-heart"></i> para panaderos</small>
   </footer>
 
-  <!-- Firebase + App -->
   <script type="module" src="app.js"></script>
 </body>
-
 </html>
