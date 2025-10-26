@@ -8,15 +8,6 @@
   --danger: #c62828;
   --tableHead: #f2e3d5;
 }
-body {
-  font-family: 'Segoe UI', Tahoma, sans-serif;
-  margin: 0;
-  padding: 0;
-  background: #794720a1 url('https://www.transparenttextures.com/patterns/wall-4-light.png');
-  color: var(--text);
-  line-height: 1.6;
-}
-
 /* Dark mode variables */
 body.dark {
   --bg: #121214;
@@ -30,6 +21,12 @@ body.dark {
 }
 
 body {
+  font-family: 'Segoe UI', Tahoma, sans-serif;
+  margin: 0;
+  padding: 0;
+  background: #794720a1 url('https://www.transparenttextures.com/patterns/wall-4-light.png');
+  color: var(--text);
+  line-height: 1.6;
   background-color: var(--bg);
 }
 
@@ -68,7 +65,6 @@ main {
   padding: 20px;
   box-shadow: 0 3px 8px rgba(0,0,0,0.15);
   margin-bottom: 20px;
-  color: var(--text);
 }
 
 /* ===== Formularios ===== */
@@ -90,9 +86,25 @@ input, textarea, select {
 
 textarea { resize: vertical; }
 
+/* Mantengo la clase .row (usada en otras partes) pero añadí .form-row para el bloque promedio */
+/* .row se mantiene para retrocompatibilidad con el resto del layout */
 .row { display: flex; gap: 10px; flex-wrap: wrap; }
 .row > * { flex: 1; }
 .align-bottom { display: flex; align-items: flex-end; }
+
+/* ===== NUEVO: form-row para evitar solapamientos en pantallas grandes ===== */
+.form-row {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  gap: 1.2rem;
+  align-items: end;
+  width: 100%;
+  box-sizing: border-box;
+  margin-top: 8px;
+}
+.form-row > div {
+  min-width: 0; /* importante para que inputs respeten el ancho dentro del grid */
+}
 
 /* ===== Botones ===== */
 .actions-row {
@@ -310,15 +322,8 @@ footer {
   .actions-row { flex-direction: column; }
   .ingredient-row { flex-direction: column; align-items:flex-start; }
   .ingredient-row .pctIng { width:100%; max-width: none; flex: 1; text-align: left; }
+  .form-row { grid-template-columns: 1fr; } /* en móviles una columna */
 }
-
-.form-row {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
-  gap: 1rem;
-  align-items: end;
-}
-
 
 /* Ajustes visuales tema oscuro */
 body.dark .panel { box-shadow: none; border: 1px solid rgba(255,255,255,0.03); }

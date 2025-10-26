@@ -16,7 +16,7 @@
   <!-- Chart.js para gráficos -->
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
 
-  <!-- Manifest PWA (mínimo) -->
+  <!-- Manifest PWA (opcional si lo vas a proveer) -->
   <link rel="manifest" href="manifest.json">
 </head>
 <body>
@@ -50,7 +50,8 @@
         <!-- Aquí se renderiza nombre como input o texto -->
       </div>
 
-      <div class="row">
+      <!-- Aquí aplicamos la clase form-row para evitar solapamiento en pantallas grandes -->
+      <div class="form-row">
         <div>
           <label for="pesoTotal">Peso total de la masa (g)</label>
           <input id="pesoTotal" type="number" min="1" value="1000">
@@ -83,7 +84,6 @@
         </div>
       </div>
 
-      <!-- Panel técnico: hidratación, salinidad, starter % y gráfico -->
       <div class="panel" id="panelTecnico" style="margin-top:12px;">
         <h4><i class="bx bx-bar-chart-alt-2"></i> Análisis técnico</h4>
         <div id="analisisStats" style="display:flex;gap:12px;flex-wrap:wrap;">
@@ -115,7 +115,6 @@
         <button id="btnLimpiar" class="icon-btn"><i class="bx bx-eraser"></i> Limpiar</button>
       </div>
 
-      <!-- Auth / PWA / UI tools -->
       <div class="actions-row" style="margin-top:12px;">
         <button id="btnSigninGoogle" class="icon-btn"><i class="bx bxl-google"></i> Iniciar sesión (Google)</button>
         <button id="btnToggleTheme" class="icon-btn"><i class="bx bx-moon"></i> Tema</button>
