@@ -55,7 +55,8 @@ const tablaIngredientes = document.getElementById("tablaIngredientes");
 const sumGramsEl = document.getElementById("sumGrams");
 
 const statHydration = document.getElementById("statHydration");
-const statHydrationAdditional = document.getElementById("statHydrationAdditional");
+const statHydrationMilk = document.getElementById("statHydrationMilk");
+const statHydrationExtra = document.getElementById("statHydrationExtra");
 const statHydrationTotal = document.getElementById("statHydrationTotal");
 const statStarterPct = document.getElementById("statStarterPct");
 const statSaltPct = document.getElementById("statSaltPct");
@@ -96,7 +97,7 @@ function classifyIngredientName(name = "") {
   if (n.includes("agua") || n.includes("water") || n.includes("agua mineral")) return "water";
   if (n.includes("leche") || n.includes("milk")) return "milk";
   if (n.includes("huevo") || n.includes("egg")) return "egg";
-  if (n.includes("mantequilla") || n.includes("butter")) return "butter";
+  if (n.includes("mantequilla") || n.includes("butter") || n.includes("margarina")) return "butter";
   if (n.includes("yogur") || n.includes("yoghurt") || n.includes("yogurt") || n.includes("crema")) return "yogurt";
   if (n.includes("masa madre") || n.includes("starter") || n.includes("levain") || n.includes("sourdough")) return "starter";
   if (n.includes("sal")) return "salt";
@@ -110,7 +111,6 @@ const WATER_CONTENT = {
   egg: 0.74,
   butter: 0.16,
   yogurt: 0.80,
-  // other types: fallback handled below
 };
 
 // ------------------- CÁLCULOS Y RENDER -------------------
@@ -201,22 +201,16 @@ function actualizarStats() {
   // Leer hidratación del starter desde input; si no presente, asumir 100%
   const starterHydrationInputVal = parseFloat((starterHydrationInput && starterHydrationInput.value) || 100) || 100;
 
-  // Calcular agua proveniente de starter según hidratación: 
-  // si starterH = H %, por cada g de starter:
-  // flour_in_starter = g * (100 / (100 + H))
-  // water_in_starter = g - flour_in_starter = g * (H / (100 + H))
+  // Calcular agua proveniente de starter según hidratación:
   const H = starterHydrationInputVal;
   const starterWater = starterW * (H / (100 + H));
   const starterFlourEquivalent = starterW - starterWater;
 
   // Agua de otros ingredientes usando WATER_CONTENT estimado
-  const milkWater = milkW * WATER_CONTENT.milk;
-  const eggWater = eggW * WATER_CONTENT.egg;
-  const butterWater = butterW * WATER_CONTENT.butter;
-  const yogurtWater = yogurtW * WATER_CONTENT.yogurt;
-
-  // Si hay ingredientes "otros" que posiblemente contengan agua (por ejemplo frutas, miel...) no se cuentan por defecto.
-  // Podríamos intentar estimar algunos por nombre, pero por ahora quedan en "otrosW".
+  const milkWater = milkW * (WATER_CONTENT.milk || 0.87);
+  const eggWater = eggW * (WATER_CONTENT.egg || 0.74);
+  const butterWater = butterW * (WATER_CONTENT.butter || 0.16);
+  const yogurtWater = yogurtW * (WATER_CONTENT.yogurt || 0.80);
 
   // Harina total efectiva (incluye la parte de harina "interna" del starter)
   const harinaTotal = flourW + starterFlourEquivalent;
@@ -239,7 +233,8 @@ function actualizarStats() {
 
   // Actualizar UI (formatos)
   statHydration.textContent = isFinite(hidrPrincipal) ? hidrPrincipal.toFixed(1) + "%" : "—";
-  statHydrationAdditional.textContent = isFinite(hidrAdicional) ? hidrAdicional.toFixed(1) + "%" : "—";
+  statHydrationMilk.textContent = isFinite((milkWater / (harinaTotal || 1)) * 100) ? ((milkWater / (harinaTotal || 1)) * 100).toFixed(1) + "%" : "—";
+  statHydrationExtra.textContent = isFinite((aguaDesdeOtros / (harinaTotal || 1)) * 100) ? ((aguaDesdeOtros / (harinaTotal || 1)) * 100).toFixed(1) + "%" : "—";
   statHydrationTotal.textContent = isFinite(hidrTotal) ? hidrTotal.toFixed(1) + "%" : "—";
   statSaltPct.textContent = isFinite(salSobreHarina) ? salSobreHarina.toFixed(2) + "% (sobre harina)" : "—";
   statPesoEfectivo.textContent = Math.round(pesoEfectivo) + " g";
@@ -254,7 +249,6 @@ function addIngredient(nombre = "Ingrediente", porcentaje = 0) {
 
 // --- Renderizar todo basado en modo ---
 function renderAll() {
-  console.log("Rendering all, isEditMode:", isEditMode, "recetaIdActual:", recetaIdActual);
   renderNombre();
   renderInstrucciones();
   renderIngredientes();
@@ -280,46 +274,37 @@ function renderNombre() {
     h2.textContent = nombreRecetaContainer.dataset.value || "Receta sin nombre";
     nombreRecetaContainer.appendChild(h2);
   }
-  console.log("Rendered nombre:", nombreRecetaContainer.dataset.value);
 }
 
 // --- Renderizar instrucciones ---
 function renderInstrucciones() {
-  // Amasado
   instrAmasadoContainer.innerHTML = "<label for='instrAmasado'>Amasado / Fermentación</label>";
   if (isEditMode) {
     const textarea = document.createElement("textarea");
     textarea.id = "instrAmasado";
     textarea.rows = 3;
     textarea.value = instrAmasadoContainer.dataset.value || "";
-    textarea.addEventListener("input", (e) => {
-      instrAmasadoContainer.dataset.value = e.target.value;
-    });
+    textarea.addEventListener("input", (e) => { instrAmasadoContainer.dataset.value = e.target.value; });
     instrAmasadoContainer.appendChild(textarea);
   } else {
     const p = document.createElement("p");
     p.textContent = instrAmasadoContainer.dataset.value || "—";
     instrAmasadoContainer.appendChild(p);
   }
-  console.log("Rendered instrAmasado:", instrAmasadoContainer.dataset.value);
 
-  // Horneado
   instrHorneadoContainer.innerHTML = "<label for='instrHorneado'>Horneado</label>";
   if (isEditMode) {
     const textarea = document.createElement("textarea");
     textarea.id = "instrHorneado";
     textarea.rows = 2;
     textarea.value = instrHorneadoContainer.dataset.value || "";
-    textarea.addEventListener("input", (e) => {
-      instrHorneadoContainer.dataset.value = e.target.value;
-    });
+    textarea.addEventListener("input", (e) => { instrHorneadoContainer.dataset.value = e.target.value; });
     instrHorneadoContainer.appendChild(textarea);
   } else {
     const p = document.createElement("p");
     p.textContent = instrHorneadoContainer.dataset.value || "—";
     instrHorneadoContainer.appendChild(p);
   }
-  console.log("Rendered instrHorneado:", instrHorneadoContainer.dataset.value);
 }
 
 // --- Renderizar ingredientes ---
@@ -382,8 +367,17 @@ function renderIngredientes() {
         }
       });
     });
+  } else {
+    // Vista: mostrar lista
+    const ul = document.createElement("ul");
+    ul.className = "view-ingredientes-list";
+    (ingredientes || []).forEach(ing => {
+      const li = document.createElement("li");
+      li.textContent = `${ing.nombre} — ${(parseFloat(ing.porcentaje)||0).toFixed(2)}% — ${(ing._grams||0)} g`;
+      ul.appendChild(li);
+    });
+    ingredientesDiv.appendChild(ul);
   }
-  console.log("Rendered ingredientes:", ingredientes);
 }
 
 // --- Toggle elementos de edición ---
@@ -393,16 +387,13 @@ function toggleEditElements() {
   ingredientesSection.style.display = isEditMode ? "block" : "none";
   btnEditar.style.display = (recetaIdActual && !isEditMode) ? "flex" : "none";
   btnEliminar.style.display = recetaIdActual ? "flex" : "none";
-  console.log("Toggled edit elements, isEditMode:", isEditMode);
 }
 
 // --- Cancelar edición ---
 async function cancelarEdicion() {
   if (recetaIdActual) {
-    // Recargar la receta desde Firestore para restaurar datos originales
     await cargarReceta(recetaIdActual);
   } else {
-    // Si es una receta nueva, limpiar el formulario
     limpiarFormulario();
   }
   isEditMode = false;
@@ -410,7 +401,7 @@ async function cancelarEdicion() {
 }
 
 // --- Guardar receta ---
-// Ahora guarda createdAt/updatedAt y versiones (historial)
+// Guarda createdAt/updatedAt y versiones (historial)
 async function guardarReceta() {
   const receta = {
     nombre: nombreRecetaContainer.dataset.value,
@@ -426,12 +417,10 @@ async function guardarReceta() {
   if (recetaIdActual) {
     if (confirm("¿Quieres actualizar la receta existente?")) {
       try {
-        // Antes de sobrescribir, obtenemos versión actual para guardar en historial
         const docRef = doc(db, "recetas", recetaIdActual);
         const snapshot = await getDoc(docRef);
         if (snapshot.exists()) {
           const dataPrev = snapshot.data();
-          // crear un objeto de versión básico
           const versionObj = {
             savedAt: dataPrev.updatedAt || dataPrev.createdAt || serverTimestamp(),
             snapshot: {
@@ -444,15 +433,11 @@ async function guardarReceta() {
               ingredientes: dataPrev.ingredientes
             }
           };
-          // agregar versión al array 'versions' usando arrayUnion
-          await updateDoc(docRef, {
-            versions: arrayUnion(versionObj)
-          });
+          await updateDoc(docRef, { versions: arrayUnion(versionObj) });
         }
-        // ahora actualizar con nuevo contenido (setDoc sobrescribe, usamos setDoc con merge true)
         await setDoc(doc(db, "recetas", recetaIdActual), { ...receta }, { merge: true });
         alert("✅ Receta actualizada correctamente");
-        isEditMode = false; // Salir del modo edición tras guardar
+        isEditMode = false;
       } catch (error) {
         console.error("Error updating recipe:", error);
         alert("❌ Error al actualizar la receta");
@@ -470,7 +455,7 @@ async function guardarReceta() {
       });
       alert("✅ Nueva receta guardada");
       recetaIdActual = newRef.id;
-      isEditMode = false; // Salir del modo edición tras guardar
+      isEditMode = false;
     } catch (error) {
       console.error("Error saving new recipe:", error);
       alert("❌ Error al guardar la receta");
@@ -482,7 +467,6 @@ async function guardarReceta() {
 
 // --- Cargar recetas ---
 async function cargarRecetas() {
-  console.log("Loading recipes...");
   recetaSelect.innerHTML = `<option value="">-- Agregar una receta ➕🥐 --</option>`;
   recetasCache = [];
   try {
@@ -490,13 +474,7 @@ async function cargarRecetas() {
     snapshot.forEach(docSnap => {
       const data = docSnap.data();
       recetasCache.push({ id: docSnap.id, data });
-      const opt = document.createElement("option");
-      opt.value = docSnap.id;
-      opt.textContent = data.nombre || "Receta sin nombre";
-      recetaSelect.appendChild(opt);
-      console.log("Added recipe to dropdown:", docSnap.id, docSnap.data().nombre);
     });
-    console.log("Recipes loaded successfully, count:", snapshot.size);
     applySearchSortRender();
   } catch (error) {
     console.error("Error loading recipes:", error);
@@ -506,7 +484,6 @@ async function cargarRecetas() {
 
 // Apply search and sorting, then render the select options
 function applySearchSortRender() {
-  // filtrado
   const q = (searchRecetas.value || "").toLowerCase().trim();
   let results = recetasCache.filter(r => {
     if (!q) return true;
@@ -515,24 +492,18 @@ function applySearchSortRender() {
     return n.includes(q) || ingreds.includes(q);
   });
 
-  // ordenar
   const field = sortField.value || "nombre";
   results.sort((a,b) => {
     let va = a.data[field];
     let vb = b.data[field];
-    // si son timestamps (Firestore), van a ser objetos; convertir a número si es posible
     if (va && typeof va.toMillis === "function") va = va.toMillis();
     if (vb && typeof vb.toMillis === "function") vb = vb.toMillis();
-    if (field === "nombre") {
-      va = (va || "").toLowerCase();
-      vb = (vb || "").toLowerCase();
-    }
+    if (field === "nombre") { va = (va || "").toLowerCase(); vb = (vb || "").toLowerCase(); }
     if (va < vb) return sortAsc ? -1 : 1;
     if (va > vb) return sortAsc ? 1 : -1;
     return 0;
   });
 
-  // render select
   recetaSelect.innerHTML = `<option value="">-- Agregar una receta ➕🥐 --</option>`;
   results.forEach(r => {
     const opt = document.createElement("option");
@@ -544,30 +515,22 @@ function applySearchSortRender() {
 
 // --- Cargar receta ---
 async function cargarReceta(id) {
-  console.log("Attempting to load recipe with id:", id);
-  if (!id) {
-    console.log("No id provided, clearing form");
-    limpiarFormulario();
-    return;
-  }
+  if (!id) { limpiarFormulario(); return; }
   try {
     const docSnap = await getDoc(doc(db, "recetas", id));
     if (docSnap.exists()) {
       const data = docSnap.data();
-      console.log("Recipe data fetched:", data);
       nombreRecetaContainer.dataset.value = data.nombre || "";
       pesoTotalInput.value = data.pesoTotal || 1000;
       pesoMultiplierInput.value = data.pesoMultiplier || 1;
       starterHydrationInput.value = data.starterHidratacion || 100;
       instrAmasadoContainer.dataset.value = data.instrAmasado || "";
       instrHorneadoContainer.dataset.value = data.instrHorneado || "";
-      ingredientes = (data.ingredientes || []).map(it => ({ ...it })); // clone
+      ingredientes = (data.ingredientes || []).map(it => ({ ...it }));
       recetaIdActual = id;
-      isEditMode = false; // Carga en modo vista
+      isEditMode = false;
       renderAll();
-      console.log("Recipe loaded successfully, id:", id);
     } else {
-      console.error("No such document for id:", id);
       alert("❌ La receta no existe");
       limpiarFormulario();
     }
@@ -579,36 +542,21 @@ async function cargarReceta(id) {
 
 // --- Duplicar receta ---
 async function duplicarReceta() {
-  if (!recetaIdActual) {
-    alert("Selecciona una receta existente para duplicar.");
-    return;
-  }
+  if (!recetaIdActual) { alert("Selecciona una receta existente para duplicar."); return; }
   try {
     const docRef = doc(db, "recetas", recetaIdActual);
     const snapshot = await getDoc(docRef);
-    if (!snapshot.exists()) {
-      alert("La receta ya no existe.");
-      return;
-    }
+    if (!snapshot.exists()) { alert("La receta ya no existe."); return; }
     const data = snapshot.data();
-    // Modificar nombre para indicar copia
     const nameCopy = (data.nombre || "Receta") + " (copia)";
-    const newData = {
-      ...data,
-      nombre: nameCopy,
-      createdAt: serverTimestamp(),
-      updatedAt: serverTimestamp(),
-      versions: []
-    };
-    // remover id si existe
+    const newData = { ...data, nombre: nameCopy, createdAt: serverTimestamp(), updatedAt: serverTimestamp(), versions: [] };
     delete newData.id;
     const newRef = await addDoc(collection(db, "recetas"), newData);
     alert("✅ Receta duplicada: " + nameCopy);
     await cargarRecetas();
-    // seleccionar la nueva receta
     recetaSelect.value = newRef.id;
     cargarReceta(newRef.id);
-    isEditMode = true; // abrir para edición por si quieren ajustar
+    isEditMode = true;
     renderAll();
   } catch (err) {
     console.error("Error duplicating:", err);
@@ -635,7 +583,6 @@ async function eliminarReceta() {
 
 // --- Limpiar formulario ---
 function limpiarFormulario() {
-  console.log("Clearing form");
   nombreRecetaContainer.dataset.value = "";
   pesoTotalInput.value = 1000;
   pesoMultiplierInput.value = 1;
@@ -644,29 +591,31 @@ function limpiarFormulario() {
   instrHorneadoContainer.dataset.value = "";
   ingredientes = [];
   recetaIdActual = null;
-  isEditMode = true; // Modo edición para nueva
+  isEditMode = true;
   renderAll();
 }
 
-// --- Exportar PDF ---
+// --- Exportar PDF (jsPDF + autoTable) ---
 function exportarPDF() {
   const { jsPDF } = window.jspdf;
-  const doc = new jsPDF();
+  const doc = new jsPDF({ unit: 'pt', format: 'a4' });
 
-  // --- Título ---
-  doc.setFontSize(16);
+  // Header
+  const title = nombreRecetaContainer.dataset.value || "Receta sin nombre";
+  doc.setFontSize(18);
   doc.setFont("helvetica", "bold");
-  doc.text(nombreRecetaContainer.dataset.value || "Receta sin nombre", 14, 20);
+  doc.text(title, 40, 60);
 
-  // --- Peso total ---
-  if (pesoTotalInput.value) {
-    doc.setFontSize(12);
-    doc.setFont("helvetica", "normal");
-    doc.text(`Peso total de la masa: ${pesoTotalInput.value} g (×${(pesoMultiplierInput.value||1)})`, 14, 30);
-    doc.text(`Starter hidratación: ${starterHydrationInput.value || 100}%`, 14, 36);
-  }
+  doc.setFontSize(10);
+  doc.setFont("helvetica", "normal");
+  const meta = [
+    `Peso objetivo: ${pesoTotalInput.value || "—"} g`,
+    `Multiplicador: ${pesoMultiplierInput.value || 1}×`,
+    `Starter hidratación: ${starterHydrationInput.value || 100}%`
+  ];
+  doc.text(meta.join(" — "), 40, 80);
 
-  // --- Tabla ingredientes ---
+  // Ingredients table
   const body = ingredientes.map(i => [
     i.nombre,
     (parseFloat(i.porcentaje) || 0).toFixed(2) + "%",
@@ -674,67 +623,81 @@ function exportarPDF() {
   ]);
 
   doc.autoTable({
-    startY: 46,
+    startY: 110,
     head: [["Ingrediente", "% Panadero", "Peso (g)"]],
     body,
-    theme: "grid",
-    headStyles: { fillColor: [41, 128, 185], textColor: 255, fontStyle: "bold" },
-    bodyStyles: { fontSize: 11 }
+    styles: { fontSize: 10 },
+    headStyles: { fillColor: [41, 128, 185] }
   });
 
-  // --- Instrucciones ---
-  let y = doc.lastAutoTable.finalY + 25;
-
-  // Título de sección
-  doc.setFontSize(13);
-  doc.setFont("helvetica", "bold");
-  doc.text("Instrucciones", 14, y);
-
-  y += 10; // espacio después del título
-
-  // Subtítulo Amasado/Fermentación
+  // Stats block
+  let y = doc.lastAutoTable.finalY + 20;
   doc.setFontSize(12);
   doc.setFont("helvetica", "bold");
-  doc.text("Amasado / Fermentación:", 14, y);
+  doc.text("Análisis técnico", 40, y);
+  y += 14;
+  doc.setFontSize(10);
+  doc.setFont("helvetica", "normal");
 
-  y += 8;
+  const stats = {
+    "Hidratación base": statHydration.textContent || "—",
+    "Hidratación (leche)": statHydrationMilk.textContent || "—",
+    "Hidratación (otros)": statHydrationExtra.textContent || "—",
+    "Hidratación total": statHydrationTotal.textContent || "—",
+    "Starter (%)": statStarterPct.textContent || "—",
+    "Salinidad": statSaltPct.textContent || "—",
+    "Peso efectivo": statPesoEfectivo.textContent || "—"
+  };
+
+  Object.entries(stats).forEach(([k, v]) => {
+    if (y > 720) { doc.addPage(); y = 40; }
+    doc.text(`${k}: ${v}`, 40, y);
+    y += 14;
+  });
+
+  // Instrucciones
+  y += 6;
+  doc.setFont("helvetica", "bold");
+  doc.text("Instrucciones", 40, y);
+  y += 14;
   doc.setFont("helvetica", "normal");
   const amasado = instrAmasadoContainer.dataset.value || "—";
-  const lineasAmasado = doc.splitTextToSize(amasado, 180);
-
-  lineasAmasado.forEach(linea => {
-    if (y > 270) { doc.addPage(); y = 20; }
-    doc.text(linea, 14, y);
-    y += 7;
-  });
-
-  // Subtítulo Horneado
-  y += 10;
-  doc.setFont("helvetica", "bold");
-  doc.text("Horneado:", 14, y);
-
-  y += 8;
-  doc.setFont("helvetica", "normal");
   const horneado = instrHorneadoContainer.dataset.value || "—";
-  const lineasHorneado = doc.splitTextToSize(horneado, 180);
 
-  lineasHorneado.forEach(linea => {
-    if (y > 270) { doc.addPage(); y = 20; }
-    doc.text(linea, 14, y);
-    y += 7;
+  const amasadoLines = doc.splitTextToSize("Amasado / Fermentación: " + amasado, 520);
+  amasadoLines.forEach(line => {
+    if (y > 720) { doc.addPage(); y = 40; }
+    doc.text(line, 40, y);
+    y += 12;
   });
 
-  // Guardar PDF
-  doc.save((nombreRecetaContainer.dataset.value || "receta") + ".pdf");
+  y += 6;
+  const horneadoLines = doc.splitTextToSize("Horneado: " + horneado, 520);
+  horneadoLines.forEach(line => {
+    if (y > 720) { doc.addPage(); y = 40; }
+    doc.text(line, 40, y);
+    y += 12;
+  });
+
+  doc.save((title || "receta") + ".pdf");
 }
 
-// --- Exportar CSV (simple) ---
+// --- Exportar CSV (con estadísticas) ---
 function exportarCSV() {
-  const rows = [
-    ["Ingrediente", "% Panadero", "Peso (g)"],
-    ...ingredientes.map(i => [i.nombre, (parseFloat(i.porcentaje)||0).toFixed(2), (i._grams||0)])
+  const header = ["Ingrediente","% Panadero","Peso (g)"];
+  const rows = ingredientes.map(i => [i.nombre, (parseFloat(i.porcentaje)||0).toFixed(2), (i._grams||0)]);
+  const stats = [
+    ["", ""],
+    ["Estadística", "Valor"],
+    ["Hidratación base", statHydration.textContent || ""],
+    ["Hidratación (leche)", statHydrationMilk.textContent || ""],
+    ["Hidratación (otros)", statHydrationExtra.textContent || ""],
+    ["Hidratación total", statHydrationTotal.textContent || ""],
+    ["Starter (%)", statStarterPct.textContent || ""],
+    ["Salinidad", statSaltPct.textContent || ""],
+    ["Peso efectivo", statPesoEfectivo.textContent || ""]
   ];
-  const csv = rows.map(r => r.map(cell => `"${String(cell).replace(/"/g,'""')}"`).join(",")).join("\n");
+  const csv = [header, ...rows, ...stats].map(r => r.map(c => `"${String(c).replace(/"/g,'""')}"`).join(",")).join("\n");
   const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
   const url = URL.createObjectURL(blob);
   const a = document.createElement("a");
@@ -750,36 +713,19 @@ function exportarCSV() {
 btnAgregarIngrediente.addEventListener("click", () => addIngredient());
 btnGuardar.addEventListener("click", guardarReceta);
 btnEliminar.addEventListener("click", eliminarReceta);
-btnEditar.addEventListener("click", () => {
-  isEditMode = true;
-  renderAll();
-});
+btnEditar.addEventListener("click", () => { isEditMode = true; renderAll(); });
 btnExportar.addEventListener("click", exportarPDF);
+btnExportCSV.addEventListener("click", exportarCSV);
 btnLimpiar.addEventListener("click", limpiarFormulario);
-btnRecalcular.addEventListener("click", () => {
-  calcularPesos();
-  tablaIngredientes.scrollIntoView({ behavior: "smooth" });
-});
+btnRecalcular.addEventListener("click", () => { calcularPesos(); tablaIngredientes.scrollIntoView({ behavior: "smooth" }); });
 btnCancelarEdicion.addEventListener("click", cancelarEdicion);
-pesoTotalInput.addEventListener("input", () => {
-  calcularPesos();
-});
-pesoMultiplierInput.addEventListener("input", () => {
-  calcularPesos();
-});
-recetaSelect.addEventListener("change", (e) => {
-  console.log("recetaSelect changed, value:", e.target.value);
-  cargarReceta(e.target.value);
-});
+pesoTotalInput.addEventListener("input", () => { calcularPesos(); });
+pesoMultiplierInput.addEventListener("input", () => { calcularPesos(); });
+recetaSelect.addEventListener("change", (e) => { cargarReceta(e.target.value); });
 searchRecetas.addEventListener("input", () => applySearchSortRender());
 sortField.addEventListener("change", () => applySearchSortRender());
-btnSortToggle.addEventListener("click", () => {
-  sortAsc = !sortAsc;
-  btnSortToggle.classList.toggle("active", sortAsc);
-  applySearchSortRender();
-});
+btnSortToggle.addEventListener("click", () => { sortAsc = !sortAsc; btnSortToggle.classList.toggle("active", sortAsc); applySearchSortRender(); });
 btnDuplicar.addEventListener("click", duplicarReceta);
-btnExportCSV.addEventListener("click", exportarCSV);
 
 // Google sign-in (opcional): sincroniza con cuenta Google
 btnSigninGoogle.addEventListener("click", async () => {
@@ -794,62 +740,38 @@ btnSigninGoogle.addEventListener("click", async () => {
   }
 });
 
-// Theme toggle (dark/light)
+// Toggle theme (dark/light)
 function applySavedTheme() {
   const t = localStorage.getItem("fermentapro_theme") || "light";
   if (t === "dark") document.body.classList.add("dark");
   else document.body.classList.remove("dark");
 }
-btnToggleTheme.addEventListener("click", () => {
+if (btnToggleTheme) btnToggleTheme.addEventListener("click", () => {
   document.body.classList.toggle("dark");
   const now = document.body.classList.contains("dark") ? "dark" : "light";
   localStorage.setItem("fermentapro_theme", now);
 });
 applySavedTheme();
 
-// PWA: instalar handler (prompt)
+// PWA install prompt
 let deferredPrompt = null;
-window.addEventListener('beforeinstallprompt', (e) => {
-  e.preventDefault();
-  deferredPrompt = e;
-  if (btnInstallPWA) btnInstallPWA.style.display = 'inline-flex';
-});
+window.addEventListener('beforeinstallprompt', (e) => { e.preventDefault(); deferredPrompt = e; if (btnInstallPWA) btnInstallPWA.style.display = 'inline-flex'; });
 if (btnInstallPWA) btnInstallPWA.addEventListener('click', async () => {
-  if (deferredPrompt) {
-    deferredPrompt.prompt();
-    const choice = await deferredPrompt.userChoice;
-    console.log('User choice', choice);
-    deferredPrompt = null;
-  } else {
-    alert("La instalación PWA no está disponible en este navegador/contexto.");
-  }
+  if (deferredPrompt) { deferredPrompt.prompt(); const choice = await deferredPrompt.userChoice; deferredPrompt = null; } else { alert("La instalación PWA no está disponible en este navegador/contexto."); }
 });
 
-// Service Worker (se registra desde Blob para no necesitar archivo externo)
+// Service Worker register via Blob (simple)
 if ('serviceWorker' in navigator) {
   const swCode = `
     const CACHE_NAME = 'fermentapro-v1';
     const toCache = [ '/', '/index.html' ];
-    self.addEventListener('install', (e) => {
-      self.skipWaiting();
-      e.waitUntil(
-        caches.open(CACHE_NAME).then(cache => cache.addAll(toCache))
-      );
-    });
-    self.addEventListener('activate', (e) => {
-      e.waitUntil(self.clients.claim());
-    });
-    self.addEventListener('fetch', (e) => {
-      e.respondWith(
-        caches.match(e.request).then(resp => resp || fetch(e.request))
-      );
-    });
+    self.addEventListener('install', e => { self.skipWaiting(); e.waitUntil(caches.open(CACHE_NAME).then(cache => cache.addAll(toCache))); });
+    self.addEventListener('activate', e => e.waitUntil(self.clients.claim()));
+    self.addEventListener('fetch', e => e.respondWith(caches.match(e.request).then(resp => resp || fetch(e.request))));
   `;
   const blob = new Blob([swCode], { type: 'application/javascript' });
   const swUrl = URL.createObjectURL(blob);
-  navigator.serviceWorker.register(swUrl).then(() => {
-    console.log("Service worker registrado (Blob) — PWA básico listo.");
-  }).catch(err => console.warn("SW registro falló:", err));
+  navigator.serviceWorker.register(swUrl).then(() => console.log("Service worker registrado")).catch(err => console.warn("SW registro falló:", err));
 }
 
 // Inicializar
