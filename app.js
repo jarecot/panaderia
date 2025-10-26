@@ -206,30 +206,7 @@ function actualizarStats() {
   renderCompoChart(labels, data);
 }
 
-// Renderizar gráfico (dona)
-function renderCompoChart(labels, data) {
-  if (compoChart) {
-    compoChart.data.labels = labels;
-    compoChart.data.datasets[0].data = data;
-    compoChart.update();
-    return;
-  }
-  compoChart = new Chart(compoChartEl.getContext("2d"), {
-    type: "doughnut",
-    data: {
-      labels,
-      datasets: [{
-        data,
-        /* dejar colores por defecto (no forzamos colores) */
-      }]
-    },
-    options: {
-      plugins: {
-        legend: { position: "bottom" }
-      }
-    }
-  });
-}
+
 
 // --- Añadir ingrediente ---
 function addIngredient(nombre = "Ingrediente", porcentaje = 0) {
