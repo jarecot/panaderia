@@ -312,5 +312,13 @@ footer {
   .ingredient-row .pctIng { width:100%; max-width: none; flex: 1; text-align: left; }
 }
 
+.form-row {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 1rem;
+  align-items: end;
+}
+
+
 /* Ajustes visuales tema oscuro */
 body.dark .panel { box-shadow: none; border: 1px solid rgba(255,255,255,0.03); }
