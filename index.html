@@ -1,147 +1,120 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Gestor de Recetas Fermentos</title>
-
-  <!-- Fuente Poppins -->
-  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600&display=swap" rel="stylesheet">
-
-  <!-- Estilos -->
-  <link rel="stylesheet" href="styles.css">
-
-  <!-- Favicon -->
-  <link rel="icon" type="image/png" href="favicon/favicon-32x32.png" sizes="32x32">
-  <link rel="icon" type="image/png" href="favicon/favicon-16x16.png" sizes="16x16">
-
-  <!-- Iconos -->
-  <link href="https://unpkg.com/boxicons@2.1.4/css/boxicons.min.css" rel="stylesheet">
-
-  <!-- jsPDF + autoTable -->
+  <link rel="stylesheet" href="styles.css" />
+  <!-- Boxicons y Google Fonts -->
+  <link href="https://unpkg.com/boxicons@2.1.4/css/boxicons.min.css" rel="stylesheet" />
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600&display=swap" rel="stylesheet">
+  <!-- jsPDF + AutoTable -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.28/jspdf.plugin.autotable.min.js"></script>
-
-  <!-- Manifest PWA (futuro) -->
-  <link rel="manifest" href="manifest.json">
 </head>
 
 <body>
-  <header class="main-header">
+  <header class="app-header">
     <div class="header-left">
-      <img src="favicon/favicon-32x32.png" alt="Logo Fermentos" class="logo-header">
-      <h1>Gestor de Recetas Fermentos</h1>
+      <h1>Gestor de Recetas <span>Fermentos</span></h1>
     </div>
     <div class="header-right">
-      <button id="btnToggleTheme" class="theme-toggle" title="Cambiar tema">
-        <i class="bx bx-moon"></i>
+      <button id="btnToggleTheme" class="icon-btn" title="Alternar tema">
+        <i class="bx bx-sun"></i>
       </button>
     </div>
   </header>
 
-  <main>
-    <section class="panel">
-      <label for="recetaSelect">Seleccionar o agregar receta</label>
-      <div class="actions-row" style="align-items:center;">
-        <select id="recetaSelect"></select>
-        <button id="btnEditar" class="icon-btn"><i class="bx bx-edit"></i> Editar</button>
-        <button id="btnCancelarEdicion" class="icon-btn"><i class="bx bx-x-circle"></i> Cancelar</button>
-        <button id="btnEliminar" class="icon-btn danger"><i class="bx bx-trash"></i> Eliminar</button>
-      </div>
-
-      <div id="nombreRecetaContainer"></div>
-
-      <div class="form-row">
-        <div>
-          <label for="pesoTotal">Peso total de la masa (g)</label>
-          <input id="pesoTotal" type="number" min="1" value="1000">
-        </div>
-        <div>
-          <label for="pesoMultiplier">Multiplicador (ej. 0.5 = mitad, 2 = doble)</label>
-          <input id="pesoMultiplier" type="number" step="0.1" min="0.01" value="1">
-        </div>
-        <div>
-          <label for="rendimiento">Rinde (opcional)</label>
-          <input id="rendimiento" type="text" placeholder="Ej. 10 panes de 90 g">
-        </div>
-        <div class="align-bottom">
-          <button id="btnRecalcular" class="icon-btn"><i class="bx bx-refresh"></i> Recalcular</button>
-        </div>
-      </div>
-
-      <h3><i class="bx bx-notepad"></i> Instrucciones</h3>
-      <div id="instrAmasadoContainer"></div>
-      <div id="instrHorneadoContainer"></div>
-
-      <div id="ingredientesSection">
-        <h3><i class="bx bx-bowl-hot"></i> Ingredientes (% panadero)</h3>
-        <div id="ingredientes"></div>
-        <div class="actions-row" id="addIngredienteContainer">
-          <button id="btnAgregarIngrediente" class="icon-btn"><i class="bx bx-plus"></i> Ingrediente</button>
-        </div>
-      </div>
-
-      <div class="panel" id="panelTecnico">
-        <h4><i class="bx bx-bar-chart-alt-2"></i> Análisis técnico</h4>
-        <div id="analisisStats" class="stats-container">
-          <div class="stat" title="Relación de agua total respecto a la harina. Incluye agua, leche y otros líquidos.">
-            Hidratación total: <strong id="statHydrationTotal">—</strong>
-          </div>
-          <div class="stat" title="Porcentaje de starter respecto al peso total de masa.">
-            Starter (% masa total): <strong id="statStarterPct">—</strong>
-          </div>
-          <div class="stat" title="Relación sal/harina (porcentaje panadero).">
-            Salinidad: <strong id="statSaltPct">—</strong>
-          </div>
-          <div class="stat" title="Peso total ajustado según multiplicador.">
-            Peso efectivo: <strong id="statPesoEfectivo">—</strong>
-          </div>
-          <div class="stat" title="Rendimiento estimado en piezas.">
-            Rendimiento: <strong id="statRendimiento">—</strong>
-          </div>
-        </div>
-      </div>
-
-      <h3><i class="bx bx-table"></i> Resultado</h3>
-      <table id="tablaPrincipal">
-        <thead>
-          <tr><th>Ingrediente</th><th>% panadero</th><th>Peso (g)</th></tr>
-        </thead>
-        <tbody id="tablaIngredientes"></tbody>
-        <tfoot>
-          <tr><th>Total</th><th></th><th id="sumGrams">--</th></tr>
-        </tfoot>
-      </table>
-
-      <div class="actions-row">
-        <button id="btnGuardar" class="icon-btn primary"><i class="bx bx-save"></i> Guardar / Actualizar</button>
-        <button id="btnDuplicar" class="icon-btn"><i class="bx bx-copy"></i> Duplicar</button>
-        <button id="btnPreviewPDF" class="icon-btn"><i class="bx bx-show"></i> Vista previa PDF</button>
-        <button id="btnExportar" class="icon-btn"><i class="bx bx-export"></i> Exportar PDF</button>
-        <button id="btnExportCSV" class="icon-btn"><i class="bx bx-file"></i> Exportar CSV</button>
-        <button id="btnCompartir" class="icon-btn"><i class="bx bx-share"></i> Compartir</button>
-        <button id="btnLimpiar" class="icon-btn"><i class="bx bx-eraser"></i> Limpiar</button>
+  <main class="main-content">
+    <section class="receta-selector">
+      <label for="recetaSelect">Seleccionar receta:</label>
+      <select id="recetaSelect"></select>
+      <div class="search-sort">
+        <input id="searchRecetas" type="text" placeholder="Buscar receta..." />
       </div>
     </section>
 
-    <section class="panel">
-      <h3><i class="bx bx-droplet"></i> Herramientas adicionales</h3>
-      <div class="actions-row">
-        <a href="hidratacion.html" class="icon-btn primary" title="Ir a la calculadora de hidratación">
-          <i class="bx bx-water"></i> Calculadora de Hidratación
-        </a>
-        <a href="starterpro.html" class="icon-btn primary" title="Ir a la calculadora de starter">
-          <i class="bx bx-flask"></i> Calculadora de Starter
-        </a>
+    <section class="receta-info">
+      <div id="nombreRecetaContainer" class="receta-nombre"></div>
+
+      <div class="config-pesos">
+        <div class="campo">
+          <label for="pesoTotal">Peso total (g):</label>
+          <input id="pesoTotal" type="number" value="1000" step="10" />
+        </div>
+        <div class="campo">
+          <label for="pesoMultiplier">Multiplicador:</label>
+          <input id="pesoMultiplier" type="number" value="1" step="0.1" />
+        </div>
+      </div>
+
+      <div class="rendimiento-container">
+        <h3>Rendimiento</h3>
+        <div class="campo">
+          <label for="rendPiezas">Cantidad de panes:</label>
+          <input id="rendPiezas" type="number" min="1" step="1" />
+        </div>
+        <div class="campo">
+          <label for="rendPesoUnit">Peso por pan (g):</label>
+          <input id="rendPesoUnit" type="number" min="1" step="1" />
+        </div>
+      </div>
+    </section>
+
+    <section class="ingredientes">
+      <h3>Ingredientes</h3>
+      <div id="ingredientes"></div>
+      <button id="btnAgregarIngrediente" class="primary-btn">
+        <i class="bx bx-plus"></i> Agregar ingrediente
+      </button>
+      <div class="tabla-container">
+        <table>
+          <thead>
+            <tr><th>Ingrediente</th><th>% Panadero</th><th>Peso (g)</th></tr>
+          </thead>
+          <tbody id="tablaIngredientes"></tbody>
+          <tfoot>
+            <tr><td colspan="2">Total:</td><td id="sumGrams">0 g</td></tr>
+          </tfoot>
+        </table>
+      </div>
+    </section>
+
+    <section class="stats">
+      <h3>Análisis Técnico</h3>
+      <div class="stats-grid">
+        <div><strong>Hidratación total:</strong> <span id="statHydrationTotal">—</span></div>
+        <div><strong>Starter:</strong> <span id="statStarterPct">—</span></div>
+        <div><strong>Salinidad:</strong> <span id="statSaltPct">—</span></div>
+        <div><strong>Peso efectivo:</strong> <span id="statPesoEfectivo">—</span></div>
+        <div><strong>Rendimiento:</strong> <span id="statRendimiento">—</span></div>
+      </div>
+    </section>
+
+    <section class="instrucciones">
+      <div id="instrAmasadoContainer"></div>
+      <div id="instrHorneadoContainer"></div>
+    </section>
+
+    <section class="acciones">
+      <h3>Opciones</h3>
+      <div class="botones-acciones">
+        <button id="btnGuardar" class="primary-btn"><i class="bx bx-save"></i> Guardar</button>
+        <button id="btnDuplicar"><i class="bx bx-copy"></i> Duplicar</button>
+        <button id="btnEliminar" class="danger-btn"><i class="bx bx-trash"></i> Eliminar</button>
+        <button id="btnRecalcular"><i class="bx bx-refresh"></i> Recalcular</button>
+        <button id="btnExportar"><i class="bx bx-download"></i> Exportar PDF</button>
+        <button id="btnPreviewPDF"><i class="bx bx-show"></i> Vista previa PDF</button>
+        <button id="btnExportCSV"><i class="bx bx-file"></i> Exportar CSV</button>
+        <button id="btnCompartir"><i class="bx bx-share-alt"></i> Compartir</button>
       </div>
     </section>
   </main>
 
-  <footer>
-    <small>Creado en <strong>Fermentos App</strong></small>
+  <footer class="app-footer">
+    <p>Creado en <strong>Fermentos App</strong> — © 2025</p>
   </footer>
 
-  <!-- Script principal -->
   <script type="module" src="app.js"></script>
 </body>
 </html>
