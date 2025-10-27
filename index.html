@@ -3,140 +3,202 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>Calculadora FermentaPro</title>
+  <title>Fermentos App — Gestor de Recetas</title>
+
+  <!-- Styles -->
   <link rel="stylesheet" href="styles.css">
-  <!-- Favicon de pan -->
-  <link rel="icon" type="image/png" href="favicon/favicon-32x32.png" sizes="32x32">
-  <link rel="icon" type="image/png" href="favicon/favicon-16x16.png" sizes="16x16">
-  <!-- Iconos -->
+
+  <!-- Icons -->
   <link href="https://unpkg.com/boxicons@2.1.4/css/boxicons.min.css" rel="stylesheet">
-  <!-- jsPDF + autoTable -->
+
+  <!-- jsPDF + autoTable (para exportar PDF en app.js) -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.28/jspdf.plugin.autotable.min.js"></script>
 
-  <!-- Manifest PWA (opcional) -->
+  <!-- Firebase (compat, para máxima compatibilidad) -->
+  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
+
+  <!-- Manifest -->
   <link rel="manifest" href="manifest.json">
+
+  <!-- Small inline style to avoid FOUC on theme toggle (will be overridden by styles.css) -->
+  <style>
+    html { background-color: #f9f9f9; }
+  </style>
 </head>
+
 <body>
-  <header>
-    <h1><a href="index.html" class="titulo">🥖 Gestor de Recetas FermentaPro 🍞</a></h1>
+  <header class="app-header">
+    <div class="header-left">
+      <a href="index.html" class="brand">
+        <span class="brand-title">Fermentos</span>
+      </a>
+    </div>
+
+    <div class="header-right" id="headerControls">
+      <div id="userInfo" class="user-info" title="Estado de usuario">
+        <!-- Rellenado desde app.js: nombre/email o ícono de sesión anónima -->
+        <span id="userLabel">Invitado</span>
+      </div>
+
+      <!-- Theme toggle (minimal emoji) - fixed to right of user -->
+      <button id="btnToggleTheme" class="theme-btn" title="Cambiar tema">🌙</button>
+
+      <!-- Sign out (appears when logged in via Google) -->
+      <button id="btnSignOut" class="btn-link hidden" title="Cerrar sesión">Cerrar sesión</button>
+    </div>
   </header>
 
-  <main>
-    <section class="panel">
-      <label for="recetaSelect">Seleccionar o agregar receta</label>
+  <main class="app-main">
+    <!-- Shared-view banner (shown only when loaded via ?receta=ID) -->
+    <div id="bannerLectura" class="banner-lectura hidden">
+      🔒 Modo vista compartida: esta receta se muestra en solo lectura.
+    </div>
 
-      <div class="actions-row" style="align-items:center;">
-        <!-- Search / filter -->
-        <input id="searchRecetas" type="search" placeholder="Buscar recetas (nombre, ingrediente)..." style="flex:1; min-width:200px;" title="Busca por nombre o por ingrediente">
-        <select id="recetaSelect" title="Seleccione una receta"></select>
+    <section class="left-panel">
+      <div class="panel controls-panel">
+        <label for="recetaSelect">Seleccionar receta</label>
+        <div class="row actions-row">
+          <input id="searchRecetas" type="search" placeholder="Buscar recetas (nombre, ingrediente)..." title="Buscar recetas">
+          <select id="recetaSelect" title="Seleccionar receta"></select>
 
-        <!-- Sort controls -->
-        <select id="sortField" title="Ordenar por">
-          <option value="nombre">Nombre</option>
-          <option value="createdAt">Fecha creación</option>
-          <option value="updatedAt">Fecha edición</option>
-        </select>
-        <button id="btnSortToggle" class="icon-btn" title="Asc / Desc"><i class="bx bx-sort"></i></button>
-
-        <button id="btnEditar" class="icon-btn" title="Editar receta"><i class="bx bx-edit"></i> Editar</button>
-        <button id="btnCancelarEdicion" class="icon-btn" title="Cancelar edición"><i class="bx bx-x-circle"></i> Cancelar</button>
-        <button id="btnEliminar" class="icon-btn danger" title="Eliminar receta"><i class="bx bx-trash"></i></button>
-      </div>
-
-      <div id="nombreRecetaContainer"></div>
-
-      <div class="form-row">
-        <div>
-          <label for="pesoTotal">Peso total de la masa (g)</label>
-          <input id="pesoTotal" type="number" min="1" value="1000" title="Peso total objetivo de la masa">
+          <select id="sortField" title="Ordenar por">
+            <option value="nombre">Nombre</option>
+            <option value="createdAt">Fecha creación</option>
+            <option value="updatedAt">Fecha edición</option>
+          </select>
+          <button id="btnSortToggle" class="icon-btn" title="Asc / Desc"><i class="bx bx-sort"></i></button>
         </div>
 
-        <div>
-          <label for="pesoMultiplier">Multiplicador (ej. 0.5 = mitad, 2 = doble)</label>
-          <input id="pesoMultiplier" type="number" step="0.1" min="0.01" value="1" title="Multiplica el peso guardado en la receta para escalar">
-        </div>
-
-        <div class="align-bottom">
-          <button id="btnRecalcular" class="icon-btn" title="Recalcular pesos"><i class="bx bx-refresh"></i> Recalcular</button>
+        <div class="row actions-row">
+          <button id="btnNuevo" class="icon-btn primary" title="Nueva receta"><i class="bx bx-plus"></i> Nueva</button>
+          <button id="btnDuplicar" class="icon-btn" title="Duplicar receta"><i class="bx bx-copy"></i> Duplicar</button>
+          <button id="btnCompartir" class="icon-btn" title="Compartir receta"><i class="bx bx-share"></i> Compartir</button>
         </div>
       </div>
 
-      <h3><i class="bx bx-notepad"></i> Instrucciones</h3>
-      <div id="instrAmasadoContainer"></div>
-      <div id="instrHorneadoContainer"></div>
-
-      <div id="ingredientesSection">
-        <h3><i class="bx bx-bowl-hot"></i> Ingredientes (% panadero)</h3>
-        <div id="ingredientes"></div>
-        <div class="actions-row" id="addIngredienteContainer">
-          <button id="btnAgregarIngrediente" class="icon-btn" title="Agregar ingrediente"><i class="bx bx-plus"></i> Ingrediente</button>
-        </div>
-      </div>
-
-      <div class="panel" id="panelTecnico" style="margin-top:12px;">
-        <h4><i class="bx bx-bar-chart-alt-2"></i> Análisis técnico</h4>
-        <div id="analisisStats" style="display:flex;gap:12px;flex-wrap:wrap;">
-          <div class="stat" title="Hidratación calculada solo a partir del agua añadida">Hidratación base: <strong id="statHydration">—</strong></div>
-          <div class="stat" title="Aportes de agua desde leche (estimado)">Hidratación (leche): <strong id="statHydrationMilk">—</strong></div>
-          <div class="stat" title="Aportes de agua desde huevos, mantequilla, yogur, etc.">Hidratación (otros): <strong id="statHydrationExtra">—</strong></div>
-          <div class="stat" title="Hidratación total considerando starter y todos los líquidos">Hidratación total: <strong id="statHydrationTotal">—</strong></div>
-          <div class="stat" title="Porcentaje de starter respecto al peso efectivo">Starter (% masa total): <strong id="statStarterPct">—</strong></div>
-          <div class="stat" title="Sal / Harina *100">Salinidad: <strong id="statSaltPct">—</strong></div>
-          <div class="stat">Peso efectivo: <strong id="statPesoEfectivo">—</strong></div>
-        </div>
-
-        <div style="margin-top:10px; display:flex; gap:8px; align-items:center; flex-wrap:wrap;">
-          <label style="min-width:220px;" title="Ajusta la hidratación que tiene tu starter (por ejemplo 100%). Esto recalcula las estadísticas sin editar la receta.">
-            Hidratación del starter (%) 
-            <input id="starterHydration" type="number" min="10" max="400" step="1" value="100" style="width:120px; margin-top:4px;">
-          </label>
-          <small style="color:#666">Edita el % y pulsa Recalcular para actualizar estadísticas.</small>
-        </div>
-
-      </div>
-
-      <h3><i class="bx bx-table"></i> Resultado</h3>
-      <table>
-        <thead>
-          <tr><th>Ingrediente</th><th>% panadero</th><th>Peso (g)</th></tr>
-        </thead>
-        <tbody id="tablaIngredientes"></tbody>
-        <tfoot>
-          <tr><th>Total</th><th> </th><th id="sumGrams">--</th></tr>
-        </tfoot>
-      </table>
-
-      <div class="actions-row">
-        <button id="btnGuardar" class="icon-btn primary" title="Guardar receta"><i class="bx bx-save"></i> Guardar / Actualizar</button>
-        <button id="btnDuplicar" class="icon-btn" title="Duplicar receta"><i class="bx bx-copy"></i> Duplicar</button>
-        <button id="btnExportar" class="icon-btn" title="Exportar PDF"><i class="bx bx-export"></i> Exportar PDF</button>
-        <button id="btnExportCSV" class="icon-btn" title="Exportar CSV"><i class="bx bx-file"></i> Exportar CSV</button>
-        <button id="btnLimpiar" class="icon-btn" title="Limpiar formulario"><i class="bx bx-eraser"></i> Limpiar</button>
-      </div>
-
-      <div class="actions-row" style="margin-top:12px;">
-        <button id="btnSigninGoogle" class="icon-btn" title="Iniciar sesión con Google"><i class="bx bxl-google"></i> Iniciar sesión (Google)</button>
-        <button id="btnToggleTheme" class="icon-btn" title="Cambiar tema"><i class="bx bx-moon"></i> Tema</button>
-        <button id="btnInstallPWA" class="icon-btn" title="Instalar PWA"><i class="bx bx-down-arrow-circle"></i> Instalar App</button>
+      <div id="listaRecetas" class="panel recipe-grid">
+        <!-- Aquí app.js renderiza tarjetas de receta (lista) -->
       </div>
     </section>
 
-    <section class="panel">
-      <h3><i class="bx bx-droplet"></i> Herramientas adicionales</h3>
-      <div class="actions-row">
-        <a href="hidratacion.html" class="icon-btn primary" title="Ir a la calculadora de hidratación"><i class="bx bx-water"></i> Calculadora de Hidratación</a>
-        <a href="starterpro.html" class="icon-btn primary" title="Ir a la calculadora de starter"><i class="bx bx-flask-round"></i> Calculadora de Starter</a>
-      </div>
-    </section>
+    <section class="right-panel panel" id="detalleRecetaPanel">
+      <!-- Encabezado detalle -->
+      <div class="detail-top">
+        <div class="detail-left">
+          <div id="nombreRecetaContainer"></div>
+          <div class="meta-row">
+            <span id="metaPesoTotal"></span>
+            <span id="metaRendimiento"></span>
+          </div>
+        </div>
 
+        <div class="detail-right">
+          <!-- Menú contextual moderno (floating card) -->
+          <div class="contextual-wrapper">
+            <button id="menuTrigger" class="menu-trigger" title="Opciones">⋮</button>
+            <div id="contextMenu" class="context-menu hidden" role="menu" aria-hidden="true">
+              <button id="ctxExportPdf" class="ctx-btn">📄 Exportar a PDF</button>
+              <button id="ctxExportCsv" class="ctx-btn">📄 Exportar CSV</button>
+              <button id="ctxShareWhats" class="ctx-btn">💬 Compartir por WhatsApp</button>
+              <button id="ctxCopyLink" class="ctx-btn">🔗 Copiar enlace</button>
+              <hr>
+              <button id="ctxViewStats" class="ctx-btn">📊 Ver estadísticas</button>
+              <button id="ctxToggleEdit" class="ctx-btn">✏️ Editar</button>
+              <button id="ctxDelete" class="ctx-btn danger">🗑️ Eliminar</button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Form / view area -->
+      <div id="formArea">
+        <div class="row form-row">
+          <div class="col">
+            <label for="pesoTotal">Peso total de la masa (g)</label>
+            <input id="pesoTotal" type="number" min="1" value="1000">
+          </div>
+
+          <div class="col">
+            <label for="pesoMultiplier">Multiplicador</label>
+            <input id="pesoMultiplier" type="number" step="0.1" min="0.01" value="1" title="Ej: 0.5 = mitad, 2 = doble">
+          </div>
+
+          <div class="col align-bottom">
+            <button id="btnRecalcular" class="icon-btn"><i class="bx bx-refresh"></i> Recalcular</button>
+          </div>
+        </div>
+
+        <div id="nombreRecetaEditContainer"></div>
+
+        <div class="row form-row">
+          <div class="col">
+            <label for="yieldCount">Rendimiento - piezas</label>
+            <input id="yieldCount" type="number" min="1" placeholder="Número de panes (ej. 10)">
+          </div>
+          <div class="col">
+            <label for="yieldWeight">Rendimiento - peso por pieza (g)</label>
+            <input id="yieldWeight" type="number" min="1" placeholder="Peso por unidad (ej. 90)">
+          </div>
+          <div class="col align-bottom">
+            <div id="yieldComputed" class="muted">Total: <span id="yieldTotalDisplay">—</span></div>
+          </div>
+        </div>
+
+        <h3>Instrucciones</h3>
+        <div id="instrAmasadoContainer"></div>
+        <div id="instrHorneadoContainer"></div>
+
+        <div id="ingredientesSection">
+          <h4>Ingredientes (% panadero)</h4>
+          <div id="ingredientes"></div>
+          <div class="actions-row">
+            <button id="btnAgregarIngrediente" class="icon-btn"><i class="bx bx-plus"></i> Ingrediente</button>
+          </div>
+        </div>
+
+        <h3>Resultado</h3>
+        <table class="result-table">
+          <thead><tr><th>Ingrediente</th><th>%</th><th>Peso (g)</th></tr></thead>
+          <tbody id="tablaIngredientes"></tbody>
+          <tfoot><tr><th>Total</th><th></th><th id="sumGrams">--</th></tr></tfoot>
+        </table>
+
+        <div class="actions-row" style="margin-top:12px;">
+          <button id="btnGuardar" class="icon-btn primary"><i class="bx bx-save"></i> Guardar / Actualizar</button>
+          <button id="btnLimpiar" class="icon-btn"><i class="bx bx-eraser"></i> Limpiar</button>
+        </div>
+
+        <div id="panelTecnico" class="panel-tecnico" style="margin-top:16px;">
+          <h4>Análisis técnico</h4>
+          <div class="stats-grid">
+            <div>Hidratación base: <strong id="statHydration">—</strong></div>
+            <div>Hidratación (leche): <strong id="statHydrationMilk">—</strong></div>
+            <div>Hidratación (otros): <strong id="statHydrationExtra">—</strong></div>
+            <div>Hidratación total: <strong id="statHydrationTotal">—</strong></div>
+            <div>Starter (% masa total): <strong id="statStarterPct">—</strong></div>
+            <div>Salinidad: <strong id="statSaltPct">—</strong></div>
+            <div>Peso efectivo: <strong id="statPesoEfectivo">—</strong></div>
+          </div>
+
+          <div style="margin-top:8px;">
+            <label for="starterHydration" class="small">Hidratación del starter (%)</label>
+            <input id="starterHydration" type="number" min="10" max="400" step="1" value="100">
+            <small class="muted">Ajusta y presiona Recalcular para actualizar estadísticas (no sobrescribe la receta salvo que guardes).</small>
+          </div>
+        </div>
+
+      </div> <!-- formArea -->
+    </section>
   </main>
 
-  <footer>
-    <small>Hecho con <i class="bx bxs-heart"></i> para panaderos</small>
+  <footer class="app-footer">
+    <small>Creado en Fermentos App — © 2025</small>
   </footer>
 
-  <!-- Firebase + App -->
+  <!-- App logic (modular ES6) -->
   <script type="module" src="app.js"></script>
 </body>
 </html>
