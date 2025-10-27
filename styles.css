@@ -1,137 +1,141 @@
-/* ===============================
-   GESTOR DE RECETAS FERMENTOS
-   Paleta: Negro + Vino (#7B1E3C)
-   Fuente: Poppins
-   =============================== */
+/* =======================
+   Estilos base Fermentos App
+   ======================= */
 
 :root {
   --color-bg: #ffffff;
-  --color-text: #111111;
-  --color-accent: #7B1E3C;
+  --color-text: #1a1a1a;
+  --color-accent: #7b1f2d; /* vino */
+  --color-accent-light: #a43649;
   --color-border: #ddd;
-  --color-panel: #fafafa;
-  --color-hover: #f3f3f3;
-  --shadow-soft: 0 2px 6px rgba(0,0,0,0.08);
+  --color-card: #f8f8f8;
+  --color-danger: #b3261e;
+
+  --radius: 10px;
+  --transition: 0.25s ease;
+  --font-main: 'Poppins', sans-serif;
 }
 
-[data-theme="dark"] {
-  --color-bg: #0f0f0f;
-  --color-text: #f5f5f5;
-  --color-accent: #b83a50;
+/* === Modo oscuro automático === */
+@media (prefers-color-scheme: dark) {
+  :root {
+    --color-bg: #121212;
+    --color-text: #f2f2f2;
+    --color-card: #1f1f1f;
+    --color-border: #333;
+  }
+}
+
+/* === Modo oscuro manual === */
+body.dark {
+  --color-bg: #121212;
+  --color-text: #f2f2f2;
+  --color-card: #1f1f1f;
   --color-border: #333;
-  --color-panel: #181818;
-  --color-hover: #252525;
-  --shadow-soft: 0 2px 10px rgba(0,0,0,0.5);
 }
 
-/* ============ GLOBAL ============ */
+/* =======================
+   Estilos generales
+   ======================= */
 body {
-  font-family: 'Poppins', sans-serif;
+  margin: 0;
+  font-family: var(--font-main);
   background-color: var(--color-bg);
   color: var(--color-text);
-  margin: 0;
-  padding: 0;
-  transition: background-color 0.3s, color 0.3s;
+  transition: background-color var(--transition), color var(--transition);
 }
 
 h1, h2, h3, h4 {
+  margin: 0;
+  font-weight: 600;
+}
+
+h1 span {
   color: var(--color-accent);
-  margin-top: 1em;
-  margin-bottom: 0.5em;
 }
 
 a {
   color: var(--color-accent);
   text-decoration: none;
-  font-weight: 500;
+  transition: color var(--transition);
 }
-
 a:hover {
-  text-decoration: underline;
+  color: var(--color-accent-light);
 }
 
-button, input, select, textarea {
-  font-family: 'Poppins', sans-serif;
-}
-
-main {
-  padding: 1rem;
-  max-width: 1000px;
-  margin: auto;
-}
-
-/* ============ HEADER ============ */
-.main-header {
-  background-color: var(--color-panel);
-  border-bottom: 1px solid var(--color-border);
-  box-shadow: var(--shadow-soft);
+/* =======================
+   Header
+   ======================= */
+.app-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 0.6rem 1rem;
+  background: var(--color-card);
+  border-bottom: 2px solid var(--color-accent);
+  padding: 10px 20px;
   position: sticky;
   top: 0;
-  z-index: 10;
+  z-index: 100;
 }
 
-.logo-header {
-  width: 36px;
-  height: 36px;
-  margin-right: 0.6rem;
+.app-header h1 {
+  font-size: 1.4rem;
 }
 
-.header-left {
+.header-right {
   display: flex;
   align-items: center;
-  gap: 0.5rem;
+  gap: 10px;
 }
 
-.header-left h1 {
-  font-size: 1.2rem;
-  font-weight: 600;
-}
-
-.theme-toggle {
-  background: none;
+/* Botón de tema */
+#btnToggleTheme {
+  background: transparent;
   border: none;
-  cursor: pointer;
-  font-size: 1.4rem;
-  color: var(--color-accent);
-  transition: transform 0.2s;
-}
-
-.theme-toggle:hover {
-  transform: scale(1.2);
-}
-
-/* ============ PANELS ============ */
-.panel {
-  background-color: var(--color-panel);
-  border: 1px solid var(--color-border);
-  border-radius: 10px;
-  padding: 1.2rem;
-  margin-top: 1.5rem;
-  box-shadow: var(--shadow-soft);
-}
-
-/* ============ FORM ELEMENTS ============ */
-label {
-  display: block;
-  font-weight: 500;
-  margin-bottom: 0.3rem;
-}
-
-input[type="text"],
-input[type="number"],
-select,
-textarea {
-  width: 100%;
-  padding: 0.5rem;
-  border: 1px solid var(--color-border);
-  border-radius: 6px;
-  background: var(--color-bg);
   color: var(--color-text);
-  transition: border-color 0.2s, background-color 0.3s;
+  font-size: 1.4rem;
+  cursor: pointer;
+  transition: transform var(--transition);
+}
+#btnToggleTheme:hover {
+  transform: scale(1.1);
+}
+
+/* =======================
+   Layout principal
+   ======================= */
+.main-content {
+  max-width: 950px;
+  margin: 0 auto;
+  padding: 20px;
+}
+
+section {
+  background: var(--color-card);
+  border-radius: var(--radius);
+  padding: 15px 20px;
+  margin-bottom: 20px;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.08);
+}
+
+/* =======================
+   Campos, formularios y botones
+   ======================= */
+label {
+  font-weight: 500;
+  display: block;
+  margin-bottom: 5px;
+}
+
+input, select, textarea {
+  width: 100%;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+  padding: 8px;
+  font-family: inherit;
+  background-color: var(--color-bg);
+  color: var(--color-text);
+  transition: border var(--transition), background-color var(--transition);
 }
 
 input:focus, select:focus, textarea:focus {
@@ -139,137 +143,130 @@ input:focus, select:focus, textarea:focus {
   border-color: var(--color-accent);
 }
 
-.form-row {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 1rem;
-}
-
-.form-row > div {
-  flex: 1 1 220px;
-}
-
-/* ============ BUTTONS ============ */
-.icon-btn {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.4rem;
-  background: var(--color-panel);
-  border: 1px solid var(--color-accent);
-  border-radius: 6px;
-  color: var(--color-accent);
+button {
   cursor: pointer;
-  padding: 0.4rem 0.8rem;
+  border: none;
+  border-radius: var(--radius);
+  padding: 8px 14px;
+  font-family: inherit;
   font-weight: 500;
-  transition: all 0.2s;
+  transition: background-color var(--transition), color var(--transition);
 }
 
-.icon-btn:hover {
+/* === Botones === */
+.primary-btn {
   background: var(--color-accent);
   color: #fff;
 }
+.primary-btn:hover {
+  background: var(--color-accent-light);
+}
 
-.icon-btn.primary {
-  background: var(--color-accent);
+.danger-btn {
+  background: var(--color-danger);
   color: #fff;
 }
-
-.icon-btn.primary:hover {
-  filter: brightness(1.1);
+.danger-btn:hover {
+  background: #e14033;
 }
 
-.icon-btn.danger {
-  border-color: #b12a2a;
-  color: #b12a2a;
+.icon-btn {
+  background: none;
+  border: none;
+  color: var(--color-text);
+  cursor: pointer;
 }
 
-.icon-btn.danger:hover {
-  background: #b12a2a;
-  color: #fff;
-}
+/* =======================
+   Secciones específicas
+   ======================= */
 
-.actions-row {
+/* Selector de recetas */
+.receta-selector {
   display: flex;
   flex-wrap: wrap;
-  gap: 0.6rem;
-  margin-top: 0.8rem;
+  gap: 10px;
+  align-items: center;
+}
+.receta-selector select {
+  flex: 1;
 }
 
-/* ============ TABLES ============ */
-table {
+/* Info receta */
+.config-pesos, .rendimiento-container {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 15px;
+}
+.campo {
+  flex: 1;
+  min-width: 150px;
+}
+
+/* Ingredientes */
+.ingredientes table {
   width: 100%;
   border-collapse: collapse;
-  margin-top: 0.8rem;
-  font-size: 0.95rem;
+  margin-top: 10px;
 }
-
-th, td {
-  padding: 0.6rem;
-  text-align: left;
+.ingredientes th, .ingredientes td {
+  padding: 8px 10px;
   border-bottom: 1px solid var(--color-border);
+  text-align: left;
 }
-
-thead th {
-  background-color: var(--color-accent);
+.ingredientes th {
+  background: var(--color-accent);
   color: #fff;
-  font-weight: 600;
+  font-weight: 500;
 }
-
-tfoot th {
+.ingredientes tfoot td {
+  font-weight: 600;
   border-top: 2px solid var(--color-accent);
-  font-weight: 600;
 }
 
-tbody tr:hover {
-  background-color: var(--color-hover);
+/* Estadísticas */
+.stats-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 10px;
+}
+.stats-grid div {
+  background: var(--color-bg);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+  padding: 10px;
+  text-align: center;
 }
 
-/* ============ STATS PANEL ============ */
-.stats-container {
+/* Acciones */
+.botones-acciones {
   display: flex;
   flex-wrap: wrap;
-  gap: 0.8rem;
-  margin-top: 0.6rem;
+  gap: 10px;
+  justify-content: center;
 }
 
-.stat {
-  flex: 1 1 180px;
-  background: var(--color-hover);
-  border-radius: 8px;
-  padding: 0.8rem;
+/* Footer */
+.app-footer {
   text-align: center;
-  box-shadow: var(--shadow-soft);
-}
-
-.stat strong {
-  color: var(--color-accent);
-  font-weight: 600;
-}
-
-/* ============ FOOTER ============ */
-footer {
-  text-align: center;
-  font-size: 0.85rem;
+  padding: 15px 0;
+  font-size: 0.9rem;
   color: var(--color-text);
-  opacity: 0.8;
-  margin: 2rem 0;
+  border-top: 1px solid var(--color-border);
 }
 
-/* ============ RESPONSIVE ============ */
+.app-footer strong {
+  color: var(--color-accent);
+}
+
+/* =======================
+   Responsividad
+   ======================= */
 @media (max-width: 600px) {
-  .actions-row {
-    flex-direction: column;
+  .main-content {
+    padding: 10px;
   }
-
-  .form-row {
-    flex-direction: column;
-  }
-
-  .header-left h1 {
+  .app-header h1 {
     font-size: 1rem;
-  }
-
-  table {
-    font-size: 0.9rem;
   }
 }
