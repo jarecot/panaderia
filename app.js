@@ -143,7 +143,7 @@ function calcularPesos() {
   const delta = Math.round(pesoTotal) - totalRounded;
   if (delta !== 0) {
     // prefer adjusting the flour ingredient if exists, else largest %
-.
+
     let idx = ingredientes.findIndex(it => Math.abs((toNum(it.porcentaje) || 0) - 100) < 1e-6);
     if (idx === -1) {
       let max = -Infinity;
