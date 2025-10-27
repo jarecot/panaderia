@@ -1,329 +1,173 @@
-/* ===== Reset general ===== */
+/* styles.css - Fermentos UI
+   - Poppins
+   - Paleta vino/negro
+   - Claro por defecto; oscuro por sistema or manual
+*/
+
+/* ---------- variables ---------- */
 :root{
-  --bg: #ffffff;
-  --panel: #fff;
-  --text: #333;
+  --wine: #8b1e3f;
+  --wine-strong: #b0333e; /* for dark mode contrast */
+  --bg-light: #ffffff;
+  --bg-surface: #fffaf8;
   --muted: #666;
-  --accent: #d18f5d;
-  --danger: #c62828;
-  --tableHead: #f2e3d5;
-}
-/* Dark mode variables */
-body.dark {
-  --bg: #121214;
-  --panel: #18181b;
-  --text: #e6e6e6;
-  --muted: #bdbdbd;
-  --accent: #b57746;
-  --danger: #ef9a9a;
-  --tableHead: #2a2a2a;
-  background: linear-gradient(180deg,#111 0%, #1a1a1d 100%);
+  --text: #111;
+  --border: #e6e0df;
+  --card-shadow: 0 4px 14px rgba(0,0,0,0.06);
+  --radius: 12px;
+  --transition: 0.3s;
+  --accent-contrast: #fff;
 }
 
+/* default (light) */
 body {
-  font-family: 'Segoe UI', Tahoma, sans-serif;
+  font-family: 'Poppins', sans-serif;
   margin: 0;
-  padding: 0;
-  background: #794720a1 url('https://www.transparenttextures.com/patterns/wall-4-light.png');
+  background: var(--bg-light);
   color: var(--text);
-  line-height: 1.6;
-  background-color: var(--bg);
+  -webkit-font-smoothing:antialiased;
+  -moz-osx-font-smoothing:grayscale;
+  transition: background var(--transition), color var(--transition);
 }
 
-/* ===== Encabezado ===== */
-header {
-  background: #794720;
-  color: white;
-  padding: 1rem;
-  text-align: center;
+/* dark mode toggled class */
+body.dark {
+  --bg-light: #0f1113;
+  --bg-surface: #121315;
+  --muted: #d1d1d1;
+  --text: #f3f3f3;
+  --border: #222426;
+  --card-shadow: 0 6px 20px rgba(0,0,0,0.5);
+  --wine: #b0333e;
 }
 
-h1 i {
-  margin-right: 8px;
+/* ===== header ===== */
+.app-header{
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+  padding:12px 18px;
+  background: linear-gradient(90deg, rgba(139,30,63,0.95) 0%, rgba(139,30,63,0.85) 100%);
+  color: #fff;
+}
+.header-left { display:flex; align-items:center; gap:12px; }
+.logo{ height:40px; width:auto; object-fit:contain; border-radius:8px; }
+.app-title{ font-size:1.05rem; margin:0; font-weight:600; letter-spacing:0.2px; }
+.app-title span { font-weight:400; margin-right:6px; }
+
+/* icon button (header) */
+.icon-btn{
+  display:inline-flex;
+  align-items:center;
+  gap:8px;
+  background:transparent;
+  border:none;
+  color:inherit;
+  padding:8px;
+  border-radius:8px;
+  cursor:pointer;
+  transition: transform 0.18s ease, background 0.18s ease;
+}
+.icon-btn i { font-size:1.15rem; }
+
+/* header icon hover */
+.icon-btn:hover { transform: translateY(-3px); background: rgba(255,255,255,0.06); }
+
+/* ===== container and panels ===== */
+.container{ max-width:980px; margin:20px auto; padding:0 16px; }
+.panel{
+  background: var(--bg-surface);
+  border-radius: var(--radius);
+  padding:18px;
+  box-shadow: var(--card-shadow);
+  border:1px solid var(--border);
+  margin-bottom:18px;
 }
 
-.titulo {
-  text-decoration: none;   /* quita el subrayado */
-  color: inherit;          /* hereda el color del h1 */
-  cursor: pointer;         /* que se vea clickeable */
+/* rows and forms */
+.label-inline { font-weight:600; display:block; margin-bottom:8px; }
+.select-row{ display:flex; gap:12px; align-items:center; }
+.select-row select { flex:1; padding:10px 12px; border-radius:8px; border:1px solid var(--border); background:transparent; color:var(--text); }
+
+/* small helpers */
+.row{ display:flex; gap:12px; align-items:center; }
+.form-row{ display:flex; gap:12px; flex-wrap:wrap; margin-top:12px; }
+.campo{ flex:1; min-width:180px; }
+.campo label{ display:block; font-weight:600; margin-bottom:6px; }
+.campo input, textarea, select { width:100%; padding:9px 10px; border-radius:10px; border:1px solid var(--border); background:transparent; transition: all var(--transition); color:var(--text); }
+
+/* instructions look */
+.instr-container textarea{ width:100%; min-height:64px; padding:10px; border-radius:10px; border:1px solid var(--border); background:transparent; resize:vertical; }
+
+/* ingredients editor rows */
+.ingredientes-editor{ margin-top:10px; }
+.ingredient-row{ display:flex; gap:8px; align-items:center; margin-bottom:8px; }
+.ingredient-row input[type="text"]{ flex:1; padding:8px; border-radius:8px; border:1px solid var(--border); }
+.ingredient-row input[type="number"]{ width:110px; padding:8px; border-radius:8px; border:1px solid var(--border); text-align:right; }
+
+/* small action row */
+.actions-row{ display:flex; gap:8px; flex-wrap:wrap; margin-top:10px; }
+
+/* table */
+.result-table{ width:100%; border-collapse:collapse; margin-top:12px; }
+.result-table th, .result-table td{ padding:10px; border-bottom:1px solid var(--border); text-align:left; }
+.result-table thead th{ background: #f7f3f3; color:var(--text); font-weight:600; }
+.result-table tfoot th{ text-align:right; }
+
+/* stats grid */
+.stats-grid{ display:grid; grid-template-columns:repeat(auto-fit,minmax(160px,1fr)); gap:10px; margin-top:8px; }
+.stat{ background:transparent; padding:10px; border-radius:10px; border:1px solid var(--border); text-align:center; }
+
+/* ===== buttons styles & layout behavior ===== */
+.actions-vertical{ display:flex; flex-direction:column; gap:12px; margin-top:14px; }
+.action-row-left{ display:flex; gap:10px; align-items:center; justify-content:flex-start; flex-wrap:wrap; }
+
+/* primary and danger */
+button.primary, .icon-btn.primary { background:var(--wine); color:var(--accent-contrast); border:none; padding:8px 12px; border-radius:10px; }
+button.primary.main-action{ width:220px; align-self:center; font-weight:600; }
+
+.icon-btn.light{ background:transparent; border:1px solid var(--border); padding:8px 10px; border-radius:8px; color:var(--text); }
+.icon-btn.danger, .icon-btn.danger:hover { color: #fff; background: #c03b3b; }
+
+/* Edit mode highlight: applied when body has class 'editing' */
+body.editing .campo input,
+body.editing .instr-container textarea,
+body.editing .ingredient-row input {
+  background: #fff5f5;
+  border-color: rgba(139,30,63,0.85);
+  box-shadow: 0 6px 18px rgba(139,30,63,0.06);
+  transition: all 0.3s ease-in-out;
 }
 
-.titulo:hover {
-  color: #000000;          /* ejemplo: cambia color al pasar el mouse */
+/* Buttons highlight in edit mode */
+body.editing .icon-btn, body.editing .btn, body.editing button.primary {
+  transition: all 0.3s ease-in-out;
+}
+body.editing .icon-btn.primary { box-shadow: 0 6px 20px rgba(139,30,63,0.12); transform: translateY(-2px); }
+
+/* small responsive rules for buttons layout:
+   - Desktop: Edit + Cancel left, Save centered below (main-action)
+   - Mobile: stacked centered
+*/
+@media (max-width: 767px){
+  .action-row-left{ justify-content:center; }
+  .action-row-left .icon-btn{ width:100%; justify-content:center; }
+  .actions-vertical .main-action { width:100%; align-self:center; }
 }
 
-/* ===== Contenido principal ===== */
-main {
-  padding: 20px;
-  max-width: 900px;
-  margin: auto;
+/* hover lift only on devices with hover support */
+@media (hover: hover) {
+  .icon-btn:hover, .btn:hover, button.primary:hover { transform: translateY(-4px); box-shadow: 0 10px 24px rgba(0,0,0,0.08); }
 }
 
-.panel {
-  background: var(--panel);
-  border-radius: 12px;
-  padding: 20px;
-  box-shadow: 0 3px 8px rgba(0,0,0,0.15);
-  margin-bottom: 20px;
-}
+/* minor helpers */
+.info-small { display:flex; flex-direction:column; justify-content:center; padding:6px 8px; min-width:140px; background:transparent; border-radius:8px; border:1px solid var(--border); }
+.small-links a { display:inline-flex; gap:8px; align-items:center; padding:8px 10px; border-radius:8px; }
 
-/* ===== Formularios ===== */
-label { 
-  font-weight: 600; 
-  margin-top: 10px; 
-  display: block; 
-}
-input, textarea, select {
-  width: 100%; 
-  padding: 8px; 
-  margin-top: 4px;
-  border: 1px solid #ccc; 
-  border-radius: 6px;
-  font-size: 14px;
-  background: transparent;
-  color: var(--text);
-}
+.label-muted { color:var(--muted); font-size:0.9rem; }
 
-textarea { resize: vertical; }
+/* footer */
+.app-footer { text-align:center; padding:14px 0; color:var(--muted); font-size:0.9rem; }
 
-/* Mantengo la clase .row (usada en otras partes) pero añadí .form-row para el bloque promedio */
-/* .row se mantiene para retrocompatibilidad con el resto del layout */
-.row { display: flex; gap: 10px; flex-wrap: wrap; }
-.row > * { flex: 1; }
-.align-bottom { display: flex; align-items: flex-end; }
-
-/* ===== NUEVO: form-row para evitar solapamientos en pantallas grandes ===== */
-.form-row {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
-  gap: 1.2rem;
-  align-items: end;
-  width: 100%;
-  box-sizing: border-box;
-  margin-top: 8px;
-}
-.form-row > div {
-  min-width: 0; /* importante para que inputs respeten el ancho dentro del grid */
-}
-
-/* ===== Botones ===== */
-.actions-row {
-  display: flex;
-  gap: 10px;
-  margin-top: 10px;
-  flex-wrap: wrap;
-}
-
-.icon-btn {
-  background: #f4f4f4;
-  border: none;
-  padding: 8px 12px;
-  border-radius: 6px;
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  transition: background 0.2s, transform 0.2s;
-  font-size: 14px;
-}
-.icon-btn i { font-size: 18px; }
-.icon-btn:hover { background: #e0d4ca; }
-.icon-btn.primary { background: var(--accent); color: white; }
-.icon-btn.primary:hover { background: #b57746; transform: scale(1.05); }
-
-/* Botón eliminar (❌) minimalista */
-.icon-btn.danger {
-  background: transparent;
-  color: var(--danger);
-  border: none;
-  padding: 4px;
-  font-size: 18px;
-  cursor: pointer;
-  transition: color 0.2s, background 0.2s;
-}
-.icon-btn.danger:hover {
-  color: #e53935;
-  background: rgba(231, 76, 60, 0.08);
-  transform: none; /* quitar escalado que causaba superposición */
-}
-
-/* Estilo para los botones Editar y Cancelar Edición */
-#btnEditar, #btnCancelarEdicion {
-  background: #f4f4f4;
-  color: #555;
-}
-#btnEditar:hover, #btnCancelarEdicion:hover {
-  background: #e0d4ca;
-  color: #333;
-}
-
-/* ===== Tablas ===== */
-table {
-  width: 100%;
-  border-collapse: collapse;
-  margin-top: 12px;
-  color: var(--text);
-}
-
-th, td { 
-  border: 1px solid #ddd; 
-  padding: 8px; 
-}
-th { 
-  background: var(--tableHead); 
-  text-align: left; 
-}
-
-/* Tabla de ingredientes con estilo más moderno */
-table.ingredientes {
-  width: 100%;
-  border-collapse: separate;
-  border-spacing: 0 8px; /* más espacio entre filas */
-}
-
-table.ingredientes th, 
-table.ingredientes td {
-  border: none;
-  padding: 10px 12px;
-  vertical-align: middle;
-}
-
-table.ingredientes th {
-  background: var(--tableHead);
-  border-radius: 6px;
-  font-weight: 600;
-}
-
-table.ingredientes tr {
-  background: #fff;
-  border-radius: 10px;
-  box-shadow: 0 2px 5px rgba(0,0,0,0.08);
-  transition: transform 0.15s ease;
-}
-table.ingredientes tr:hover {
-  transform: scale(1.01);
-  box-shadow: 0 3px 6px rgba(0,0,0,0.12);
-}
-
-table.ingredientes td:first-child {
-  font-weight: 600;
-  color: #444;
-}
-
-table.ingredientes td:last-child {
-  text-align: center;
-  width: 40px;
-}
-
-/* ===== Footer ===== */
-footer {
-  text-align: center;
-  padding: 12px;
-  background: #f7eee5;
-  margin-top: 20px;
-  font-size: 14px;
-  color: #555;
-}
-
-/* ===== Fila de ingredientes ===== */
-.ingredient-row {
-  display: flex;
-  gap: 10px;
-  align-items: center;
-  margin-bottom: 8px;
-}
-
-.ingredient-row .nombreIng {
-  flex: 1 1 60%;
-  min-width: 0;
-  padding: 8px;
-  border-radius: 6px;
-  border: 1px solid #dcdcdc;
-}
-
-.ingredient-row .pctIng {
-  flex: 0 0 110px;
-  max-width: 110px;
-  padding: 8px;
-  border-radius: 6px;
-  border: 1px solid #dcdcdc;
-  text-align: right;
-}
-
-.ingredient-row .ing-delete {
-  flex: 0 0 36px;
-  width: 36px;
-  height: 36px;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  border-radius: 8px;
-  border: none;
-  background: transparent;
-  color: #e74c3c;
-  cursor: pointer;
-  padding: 4px;
-  transition: background .12s, color .12s;
-}
-.ingredient-row .ing-delete i {
-  font-size: 18px;
-  pointer-events: none;
-}
-.ingredient-row .ing-delete:hover {
-  background: rgba(231, 76, 60, 0.06);
-  color: #c0392b;
-  transform: none;
-}
-
-/* ===== Modo vista: lista de ingredientes ===== */
-.view-ingredientes-list {
-  list-style: none;
-  padding: 0;
-  margin: 0;
-}
-
-.view-ingredientes-list li {
-  background: #f9f9f9;
-  padding: 8px 12px;
-  border-radius: 6px;
-  margin-bottom: 6px;
-  border: 1px solid #eee;
-  display: flex;
-  justify-content: space-between;
-  font-size: 14px;
-}
-
-#nombreRecetaContainer h2 {
-  margin: 10px 0;
-  font-size: 24px;
-  color: var(--text);
-}
-
-#instrAmasadoContainer p, #instrHorneadoContainer p {
-  background: #f9f9f9;
-  padding: 10px;
-  border-radius: 6px;
-  border: 1px solid #eee;
-  margin-top: 4px;
-  white-space: pre-wrap;
-}
-
-/* ===== Estadísticas panel ===== */
-#analisisStats .stat {
-  background: rgba(0,0,0,0.03);
-  padding: 8px 10px;
-  border-radius: 8px;
-  font-size: 14px;
-}
-
-/* ===== Responsive mejorado para móviles ===== */
-@media (max-width:720px){
-  .row { flex-direction: column; }
-  .actions-row { flex-direction: column; }
-  .ingredient-row { flex-direction: column; align-items:flex-start; }
-  .ingredient-row .pctIng { width:100%; max-width: none; flex: 1; text-align: left; }
-  .form-row { grid-template-columns: 1fr; } /* en móviles una columna */
-}
-
-/* Ajustes visuales tema oscuro */
-body.dark .panel { box-shadow: none; border: 1px solid rgba(255,255,255,0.03); }
+/* ensure select and inputs are legible in dark theme */
+body.dark select, body.dark input, body.dark textarea { background: transparent; color: var(--text); border-color: var(--border); }
