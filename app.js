@@ -1,8 +1,4 @@
-// app.js - Gestor de Recetas Fermentos
-// - Uses Firestore (no auth).
-// - Expects logo.b64.txt in same folder for PDF logo.
-// - Requires jsPDF and autoTable included in index.html (we included CDN).
-
+// app.js - Gestor de Recetas Fermentos (correcciones: sincronización multiplicador <-> piezas/peso y guardado)
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
 import {
   getFirestore, collection, getDocs, getDoc,
@@ -69,27 +65,27 @@ let logoDataURI = null;
 
 let isEditMode = true; // start in editing for new recipe by default
 
+// ---- NEW internal base values to track original recipe (used to compute multipliers/rendimientos) ----
+let basePeso = 1000;          // peso "base" de la receta (sin multiplicador)
+let baseRendPiezas = 0;      // cantidad de panes base para la receta original
+let basePesoPorPieza = 0;    // peso por pieza base (= basePeso / baseRendPiezas, si aplica)
+
 // ---------- Utilities ----------
 const toNum = v => {
   const n = parseFloat(v);
   return Number.isFinite(n) ? n : 0;
 };
+const round2 = v => Math.round((v + Number.EPSILON) * 100) / 100;
 
+// ---------- Editing state ----------
 function setEditing(flag) {
   isEditMode = !!flag;
   document.body.classList.toggle("editing", isEditMode);
 
-  // toggle visibility/disabled state of editors
-  // nombre (input) rendered accordingly
   renderNombre();
-
-  // render instructions (textarea if editing else p)
   renderInstrucciones();
-
-  // ingredients: in edit mode show inputs; in view mode hide inputs
   renderIngredientes();
 
-  // show/hide top edit buttons (we keep both available but manage disable)
   // save button enabled only in edit mode
   btnGuardar.disabled = !isEditMode;
 }
@@ -188,12 +184,15 @@ function renderIngredientes() {
 
 // ---------- Calculations ----------
 function getEffectivePesoTotal() {
-  const base = toNum(pesoTotalInput && pesoTotalInput.value);
+  // effective weight = basePeso * multiplier
   const mult = Math.max(0.0001, toNum(pesoMultiplierInput && pesoMultiplierInput.value) || 1);
-  return base * mult;
+  return Math.round(basePeso * mult);
 }
 
 function calcularPesos() {
+  // Ensure UI pesoTotal reflects effective total (keeps consistency)
+  if (pesoTotalInput) pesoTotalInput.value = getEffectivePesoTotal();
+
   const pesoTotal = getEffectivePesoTotal();
   if (tablaIngredientes) tablaIngredientes.innerHTML = "";
 
@@ -243,7 +242,7 @@ function calcularPesos() {
   actualizarStats();
 }
 
-// improved hydration calculation
+// improved hydration calculation + sync logic for rendimientos / multiplicador
 function actualizarStats() {
   let flourW = 0, waterW = 0, milkW = 0, eggW = 0, fatW = 0, yogurtW = 0, starterW = 0, saltW = 0, otherW = 0;
   ingredientes.forEach(it => {
@@ -285,21 +284,77 @@ function actualizarStats() {
   if (statSaltPct) statSaltPct.textContent = isFinite(salSobreHarina) ? salSobreHarina.toFixed(2) + "% (sobre harina)" : "—";
   if (statPesoEfectivo) statPesoEfectivo.textContent = Math.round(pesoEfectivo) + " g";
 
-  // rendimiento preview and auto-sync multiplier
+  // rendimiento preview (current visible values)
   const piezas = rendPiezasInput ? Math.max(0, parseInt(rendPiezasInput.value) || 0) : 0;
   const pesoUnit = rendPesoUnitInput ? Math.max(0, parseFloat(rendPesoUnitInput.value) || 0) : 0;
   if (rendimientoPreview) {
     if (piezas > 0 && pesoUnit > 0) rendimientoPreview.textContent = `${piezas} × ${pesoUnit} g = ${piezas * pesoUnit} g`;
     else rendimientoPreview.textContent = "—";
   }
-  if (piezas > 0 && pesoUnit > 0 && pesoTotalInput) {
-    const newTotal = piezas * pesoUnit;
-    if (!pesoTotalInput.dataset.base) pesoTotalInput.dataset.base = String(newTotal);
-    const base = parseFloat(pesoTotalInput.dataset.base) || newTotal || 1;
-    pesoTotalInput.value = newTotal;
-    if (pesoMultiplierInput) pesoMultiplierInput.value = Math.round((newTotal / base) * 100) / 100;
-    calcularPesos();
+}
+
+// ---------- Sync logic between multiplier <-> piezas/pesoUnit ----------
+
+// Apply multiplier (from pesoMultiplierInput) to derived fields (pesoTotal, piezas)
+function applyMultiplier(mult) {
+  if (!isFinite(mult) || mult <= 0) mult = 1;
+  // update effective total
+  const newTotal = Math.round(basePeso * mult);
+  if (pesoTotalInput) pesoTotalInput.value = newTotal;
+
+  // update piezas (scale from baseRendPiezas)
+  if (baseRendPiezas && rendPiezasInput) {
+    const newPiezas = Math.max(0, Math.round(baseRendPiezas * mult));
+    rendPiezasInput.value = newPiezas;
+  } else if (rendPiezasInput && basePesoPorPieza) {
+    // if baseRendPiezas unknown but basePesoPorPieza known, compute piezas = newTotal / pesoPorPieza
+    rendPiezasInput.value = Math.max(0, Math.round(newTotal / basePesoPorPieza));
   }
+
+  // keep peso por pieza consistent (basePesoPorPieza)
+  if (basePesoPorPieza && rendPesoUnitInput) {
+    // prefer to keep peso por pieza equal to basePesoPorPieza (rounding)
+    rendPesoUnitInput.value = Math.round(basePesoPorPieza);
+  }
+
+  // update UI multiplier (rounded)
+  if (pesoMultiplierInput) pesoMultiplierInput.value = round2(mult);
+
+  calcularPesos();
+}
+
+// When piezas or pesoUnit change -> update effective total and multiplier
+function onRendChange() {
+  const piezas = rendPiezasInput ? Math.max(0, parseInt(rendPiezasInput.value) || 0) : 0;
+  const pesoUnit = rendPesoUnitInput ? Math.max(0, parseFloat(rendPesoUnitInput.value) || 0) : 0;
+  if (piezas > 0 && pesoUnit > 0) {
+    const newTotal = Math.round(piezas * pesoUnit);
+    if (pesoTotalInput) pesoTotalInput.value = newTotal;
+    // multiplier relative to basePeso
+    const newMult = basePeso > 0 ? (newTotal / basePeso) : 1;
+    if (pesoMultiplierInput) pesoMultiplierInput.value = round2(newMult);
+    calcularPesos();
+  } else {
+    // if incomplete, still update preview and stats
+    actualizarStats();
+  }
+}
+
+// When pesoTotal is edited by user -> update multiplier and piezas
+function onPesoTotalChange() {
+  const newTotal = Math.max(0, Math.round(toNum(pesoTotalInput.value)));
+  // update multiplier
+  const newMult = basePeso > 0 ? (newTotal / basePeso) : 1;
+  if (pesoMultiplierInput) pesoMultiplierInput.value = round2(newMult);
+  // update piezas proportional to multiplier
+  applyMultiplier(newMult);
+  calcularPesos();
+}
+
+// When multiplier edited by user -> update piezas/peso total
+function onMultiplierChange() {
+  const mult = Math.max(0.0001, toNum(pesoMultiplierInput.value) || 1);
+  applyMultiplier(mult);
 }
 
 // ---------- Firestore CRUD ----------
@@ -331,10 +386,43 @@ async function cargarReceta(id) {
     const d = snap.data();
     recetaIdActual = id;
     nombreRecetaContainer.dataset.value = d.nombre || "";
-    if (pesoTotalInput) pesoTotalInput.value = d.pesoTotal || 1000;
-    if (pesoMultiplierInput) pesoMultiplierInput.value = d.pesoMultiplier != null ? d.pesoMultiplier : 1;
-    if (rendPiezasInput && d.rendimiento) rendPiezasInput.value = d.rendimiento.piezas || "";
-    if (rendPesoUnitInput && d.rendimiento) rendPesoUnitInput.value = d.rendimiento.pesoPorPieza || "";
+
+    // Determine basePeso and multiplier. We keep compatibility:
+    // - if d.pesoBase exists we use it as recipe base; otherwise fallback to saved pesoTotal
+    basePeso = d.pesoBase != null ? toNum(d.pesoBase) : (d.pesoTotal != null ? toNum(d.pesoTotal) : 1000);
+
+    const storedMult = d.pesoMultiplier != null ? toNum(d.pesoMultiplier) : 1;
+    // If recipe stores rendimiento, capture base rend values to allow scaling
+    if (d.rendimiento) {
+      baseRendPiezas = d.rendimiento.piezas ? parseInt(d.rendimiento.piezas) : 0;
+      basePesoPorPieza = d.rendimiento.pesoPorPieza ? toNum(d.rendimiento.pesoPorPieza) : (baseRendPiezas ? basePeso / baseRendPiezas : 0);
+    } else {
+      baseRendPiezas = 0;
+      basePesoPorPieza = 0;
+    }
+
+    // set multiplier and derived visible fields
+    if (pesoMultiplierInput) pesoMultiplierInput.value = storedMult;
+    applyMultiplier(storedMult);
+
+    // if the recipe has explicit rendimiento, show scaled values
+    if (d.rendimiento) {
+      if (rendPiezasInput) rendPiezasInput.value = Math.max(0, Math.round(baseRendPiezas * storedMult));
+      if (rendPesoUnitInput) rendPesoUnitInput.value = Math.round(basePesoPorPieza || 0);
+    } else {
+      // if no rendimiento stored, try to derive from pesoTotal
+      if (rendPiezasInput && rendPesoUnitInput) {
+        const effective = Math.round(basePeso * storedMult);
+        if (rendPiezasInput.value && rendPesoUnitInput.value) {
+          // keep what's in DB if present
+        } else {
+          // leave blank or set defaults
+        }
+      }
+    }
+
+    if (pesoTotalInput) pesoTotalInput.value = getEffectivePesoTotal();
+
     if (instrAmasadoContainer) instrAmasadoContainer.dataset.value = d.instrAmasado || "";
     if (instrHorneadoContainer) instrHorneadoContainer.dataset.value = d.instrHorneado || "";
     ingredientes = (d.ingredientes || []).map(it => ({ ...it }));
@@ -351,14 +439,28 @@ async function guardarReceta() {
   const nombre = (nombreRecetaContainer.dataset.value || "").trim();
   if (!nombre) return alert("La receta necesita un nombre");
 
+  // compute effective values for saving
+  const effectiveTotal = getEffectivePesoTotal();
+  const multiplier = toNum(pesoMultiplierInput && pesoMultiplierInput.value) || 1;
+  const rendimientoObj = {
+    piezas: rendPiezasInput ? (parseInt(rendPiezasInput.value) || 0) : 0,
+    pesoPorPieza: rendPesoUnitInput ? (parseFloat(rendPesoUnitInput.value) || 0) : 0
+  };
+
+  // Ensure basePeso stored: if no explicit basePeso (e.g., new recipe), set it from effectiveTotal / multiplier
+  // basePeso should reflect the "recipe base" (unscaled). We keep previous basePeso if present.
+  if (!basePeso || basePeso <= 0) {
+    basePeso = multiplier > 0 ? Math.round(effectiveTotal / multiplier) : effectiveTotal;
+  }
+
   const recetaObj = {
     nombre,
-    pesoTotal: toNum(pesoTotalInput && pesoTotalInput.value),
-    pesoMultiplier: toNum(pesoMultiplierInput && pesoMultiplierInput.value),
-    rendimiento: {
-      piezas: rendPiezasInput ? (parseInt(rendPiezasInput.value) || 0) : 0,
-      pesoPorPieza: rendPesoUnitInput ? (parseFloat(rendPesoUnitInput.value) || 0) : 0
-    },
+    // keep pesoTotal for backwards compatibility (effective total)
+    pesoTotal: effectiveTotal,
+    // store base + multiplier explicitly
+    pesoBase: basePeso,
+    pesoMultiplier: multiplier,
+    rendimiento: rendimientoObj,
     instrAmasado: instrAmasadoContainer.dataset.value || "",
     instrHorneado: instrHorneadoContainer.dataset.value || "",
     ingredientes,
@@ -421,7 +523,12 @@ async function eliminarReceta() {
 
 function limpiarFormulario() {
   nombreRecetaContainer.dataset.value = "";
-  if (pesoTotalInput) pesoTotalInput.value = 1000;
+  // reset base values
+  basePeso = 1000;
+  baseRendPiezas = 0;
+  basePesoPorPieza = 0;
+
+  if (pesoTotalInput) pesoTotalInput.value = Math.round(basePeso);
   if (pesoMultiplierInput) pesoMultiplierInput.value = 1;
   if (rendPiezasInput) rendPiezasInput.value = "";
   if (rendPesoUnitInput) rendPesoUnitInput.value = "";
@@ -441,7 +548,6 @@ async function loadLogo() {
     if (!r.ok) throw new Error("logo not found");
     const txt = (await r.text()).trim();
     logoDataURI = txt.startsWith("data:") ? txt : "data:image/png;base64," + txt;
-    // show small UI logo (auto scale) if exists
     if (uiLogo) uiLogo.src = logoDataURI;
   } catch (err) {
     console.warn("logo not loaded", err);
@@ -591,10 +697,12 @@ function wireEvents() {
 
   recetaSelect && recetaSelect.addEventListener("change", e => { const id = e.target.value; if (id) cargarReceta(id); else limpiarFormulario(); });
 
-  [pesoTotalInput, pesoMultiplierInput].forEach(el => el && el.addEventListener("input", () => { if (pesoTotalInput && !pesoTotalInput.dataset.base) pesoTotalInput.dataset.base = pesoTotalInput.value || "1000"; calcularPesos(); }));
+  // NEW: replace previous dataset.base logic with robust sync handlers
+  if (pesoMultiplierInput) pesoMultiplierInput.addEventListener("input", onMultiplierChange);
+  if (pesoTotalInput) pesoTotalInput.addEventListener("input", onPesoTotalChange);
 
-  if (rendPiezasInput) rendPiezasInput.addEventListener("input", () => { calcularPesos(); });
-  if (rendPesoUnitInput) rendPesoUnitInput.addEventListener("input", () => { calcularPesos(); });
+  if (rendPiezasInput) rendPiezasInput.addEventListener("input", onRendChange);
+  if (rendPesoUnitInput) rendPesoUnitInput.addEventListener("input", onRendChange);
 
   btnEditarRecetaView && btnEditarRecetaView.addEventListener("click", () => setEditing(true));
   btnCancelarEdicionView && btnCancelarEdicionView.addEventListener("click", () => { if (recetaIdActual) cargarReceta(recetaIdActual); else limpiarFormulario(); });
@@ -616,10 +724,8 @@ function wireEvents() {
 
 // ---------- Theme handling ----------
 function applyTheme(pref) {
-  // pref: 'dark'|'light'
   if (pref === "dark") document.body.classList.add("dark");
   else document.body.classList.remove("dark");
-  // change icon in btn
   if (btnToggleTheme) {
     const icon = btnToggleTheme.querySelector("i");
     if (document.body.classList.contains("dark")) { icon.className = "bx bx-sun"; }
@@ -627,11 +733,9 @@ function applyTheme(pref) {
   }
   document.documentElement.setAttribute("data-theme", pref);
 }
-
 function initTheme() {
   const saved = localStorage.getItem("fermentapro_theme");
   if (saved) return applyTheme(saved);
-  // no saved: detect prefers-color-scheme but default to light if not available
   const prefersDark = window.matchMedia && window.matchMedia("(prefers-color-scheme: dark)").matches;
   applyTheme(prefersDark ? "dark" : "light");
 }
@@ -648,14 +752,24 @@ async function handleSharedView() {
     const d = snap.data();
     recetaIdActual = id;
     nombreRecetaContainer.dataset.value = d.nombre || "";
-    if (pesoTotalInput) pesoTotalInput.value = d.pesoTotal || 1000;
-    if (pesoMultiplierInput && mult) pesoMultiplierInput.value = parseFloat(mult);
+
+    // load base and multiplier
+    basePeso = d.pesoBase != null ? toNum(d.pesoBase) : (d.pesoTotal != null ? toNum(d.pesoTotal) : 1000);
+    const storedMult = mult ? parseFloat(mult) : (d.pesoMultiplier != null ? toNum(d.pesoMultiplier) : 1);
+
     if (d.rendimiento) {
-      if (rendPiezasInput) rendPiezasInput.value = d.rendimiento.piezas || "";
-      if (rendPesoUnitInput) rendPesoUnitInput.value = d.rendimiento.pesoPorPieza || "";
+      baseRendPiezas = d.rendimiento.piezas ? parseInt(d.rendimiento.piezas) : 0;
+      basePesoPorPieza = d.rendimiento.pesoPorPieza ? toNum(d.rendimiento.pesoPorPieza) : (baseRendPiezas ? basePeso / baseRendPiezas : 0);
+    } else {
+      baseRendPiezas = 0;
+      basePesoPorPieza = 0;
     }
-    instrAmasadoContainer.dataset.value = d.instrAmasado || "";
-    instrHorneadoContainer.dataset.value = d.instrHorneado || "";
+
+    if (pesoMultiplierInput) pesoMultiplierInput.value = storedMult;
+    applyMultiplier(storedMult);
+
+    if (instrAmasadoContainer) instrAmasadoContainer.dataset.value = d.instrAmasado || "";
+    if (instrHorneadoContainer) instrHorneadoContainer.dataset.value = d.instrHorneado || "";
     ingredientes = (d.ingredientes || []).map(it => ({ ...it }));
     setEditing(false);
     calcularPesos();
@@ -674,13 +788,20 @@ async function init() {
   limpiarFormulario();
   // start in edit to create new; but if URL shares recipe, load it in view
   await handleSharedView();
-  // set UI logo placeholder if logoDataURI available
   if (logoDataURI && uiLogo) uiLogo.src = logoDataURI;
-  // default editing state set by limpiarFormulario (isEditMode true)
   setEditing(isEditMode);
 }
 
 window.addEventListener("DOMContentLoaded", init);
 
 // expose for debugging
-window._fermenta = { calcularPesos, actualizarStats, cargarRecetas, cargarReceta, guardarReceta, generatePDF, loadLogo };
+window._fermenta = {
+  calcularPesos,
+  actualizarStats,
+  cargarRecetas,
+  cargarReceta,
+  guardarReceta,
+  generatePDF,
+  loadLogo,
+  _internals: () => ({ basePeso, baseRendPiezas, basePesoPorPieza })
+};
