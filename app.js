@@ -1,6 +1,6 @@
-// app.js - Gestor de Recetas Fermentos (versión final y corregida)
-// Requisitos: index.html incluye jsPDF + autoTable (via <script>), y existe logo.b64.txt en la misma carpeta.
-// No usa autenticación (lectura/escritura directa en Firestore).
+// app.js - Gestor de Recetas Fermentos (versión final entregada)
+// Requisitos: index.html incluye jsPDF + autoTable via <script> (como acordado).
+// logo.b64.txt debe estar en la misma carpeta (contiene dataURI o solo base64).
 
 // ---------------- FIREBASE (modular) ----------------
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
@@ -9,6 +9,7 @@ import {
   addDoc, setDoc, deleteDoc, doc, serverTimestamp, query, orderBy
 } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
+// ----- Configuración Firebase (tu proyecto) -----
 const firebaseConfig = {
   apiKey: "AIzaSyAhzdmVFlvtoqMSfIQ6OCbiYdg6s6c95iY",
   authDomain: "recetaspanaderia-b31f2.firebaseapp.com",
@@ -22,9 +23,10 @@ const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
 const COLL = "recetas";
 
-// ---------------- DOM references (robust: fallbacks) ----------------
-const $ = id => document.getElementById(id);
+// ---------------- DOM helpers ----------------
+const $ = (id) => document.getElementById(id);
 
+// Expected IDs in index.html (as provided earlier)
 const recetaSelect = $("recetaSelect");
 const nombreRecetaContainer = $("nombreRecetaContainer");
 const instrAmasadoContainer = $("instrAmasadoContainer");
@@ -32,13 +34,8 @@ const instrHorneadoContainer = $("instrHorneadoContainer");
 
 const pesoTotalInput = $("pesoTotal");
 const pesoMultiplierInput = $("pesoMultiplier");
-
-// Rendimiento: dos subcampos (piezas y peso por pan)
-const rendPiezasInput = $("rendPiezas") || $("rendimientoPiezas") || $("rendPiezasInput");
-const rendPesoUnitInput = $("rendPesoUnit") || $("rendimientoPeso") || $("rendPesoInput");
-
-// legacy fallback (if user still has single field)
-const rendimientoTextInput = $("rendimiento") || $("rendimientoInput");
+const rendPiezasInput = $("rendPiezas");
+const rendPesoUnitInput = $("rendPesoUnit");
 
 const btnAgregarIngrediente = $("btnAgregarIngrediente");
 const btnGuardar = $("btnGuardar");
@@ -46,30 +43,25 @@ const btnEliminar = $("btnEliminar");
 const btnEditar = $("btnEditar");
 const btnDuplicar = $("btnDuplicar");
 const btnExportar = $("btnExportar");
-const btnPreviewPDF = $("btnPreviewPDF") || $("btnVistaPDF");
+const btnPreviewPDF = $("btnPreviewPDF");
 const btnExportCSV = $("btnExportCSV");
 const btnLimpiar = $("btnLimpiar");
 const btnRecalcular = $("btnRecalcular");
 const btnCompartir = $("btnCompartir");
+const searchRecetas = $("searchRecetas");
+const sortField = $("sortField");
+const btnSortToggle = $("btnSortToggle");
+const btnToggleTheme = $("btnToggleTheme");
 
 const ingredientesDiv = $("ingredientes");
 const tablaIngredientes = $("tablaIngredientes");
 const sumGramsEl = $("sumGrams");
 
-// stats nodes (robust)
-const statHydrationTotal = $("statHydrationTotal") || $("statHydration");
+const statHydrationTotal = $("statHydrationTotal");
 const statStarterPct = $("statStarterPct");
 const statSaltPct = $("statSaltPct");
 const statPesoEfectivo = $("statPesoEfectivo");
 const statRendimiento = $("statRendimiento");
-
-// theme toggle (if present)
-const btnToggleTheme = $("btnToggleTheme");
-
-// other optional nodes
-const searchRecetas = $("searchRecetas");
-const sortField = $("sortField");
-const btnSortToggle = $("btnSortToggle");
 
 // ---------------- State ----------------
 let ingredientes = [];
@@ -83,38 +75,40 @@ const toNum = v => {
   return Number.isFinite(n) ? n : 0;
 };
 
+// Classify ingredient by name to estimate water contributions
+function classifyIngredientName(name = "") {
+  const n = (name || "").toLowerCase();
+  if (/harina|flour|trigo|wheat|semola/i.test(n)) return "flour";
+  if (/agua|water/i.test(n)) return "water";
+  if (/leche|milk/i.test(n)) return "milk";
+  if (/huevo|egg/i.test(n)) return "egg";
+  if (/mantequilla|butter/i.test(n)) return "fat";
+  if (/yogur|yoghurt|yogurt/i.test(n)) return "yogurt";
+  if (/masa madre|starter|levain|masa madre/i.test(n)) return "starter";
+  if (/sal/i.test(n)) return "salt";
+  if (/levadura|yeast/i.test(n)) return "yeast";
+  return "other";
+}
+
+// Approximate water content per ingredient (g water per g ingredient)
+const WATER_FACTORS = {
+  milk: 0.87,
+  egg: 0.75,
+  fat: 0.16,
+  yogurt: 0.80
+};
+
+// ---------------- Calculations ----------------
 function getEffectivePesoTotal() {
   const base = toNum(pesoTotalInput && pesoTotalInput.value);
   const mult = Math.max(0.0001, toNum(pesoMultiplierInput && pesoMultiplierInput.value) || 1);
   return base * mult;
 }
 
-function classifyIngredientName(name = "") {
-  const n = (name || "").toLowerCase();
-  if (/harina|flour|wheat|trigo|sémola/i.test(n)) return "flour";
-  if (/agua|water/i.test(n)) return "water";
-  if (/leche|milk/i.test(n)) return "milk";
-  if (/huevo|egg/i.test(n)) return "egg";
-  if (/mantequilla|butter/i.test(n)) return "fat";
-  if (/yogur|yoghurt|yogurt/i.test(n)) return "yogurt";
-  if (/masa madre|starter|levain|levadura madre/i.test(n)) return "starter";
-  if (/sal/i.test(n)) return "salt";
-  if (/levadura|yeast/i.test(n)) return "yeast";
-  return "other";
-}
-
-// approximate water fractions for common ingredients (grams water per gram ingredient)
-const WATER_FACTORS = {
-  milk: 0.87,
-  egg: 0.75,
-  fat: 0.16, // butter ~16% water
-  yogurt: 0.80
-};
-
-// ---------------- Core: calcularPesos & stats ----------------
+// Calculate ingredient grams from baker's percentages using effective weight
 function calcularPesos() {
   const pesoTotal = getEffectivePesoTotal();
-  tablaIngredientes && (tablaIngredientes.innerHTML = "");
+  if (tablaIngredientes) tablaIngredientes.innerHTML = "";
 
   if (!ingredientes.length || pesoTotal <= 0) {
     if (sumGramsEl) sumGramsEl.textContent = "0 g";
@@ -122,7 +116,6 @@ function calcularPesos() {
     return;
   }
 
-  // sum % panadero
   const sumPerc = ingredientes.reduce((acc, ing) => acc + (toNum(ing.porcentaje) || 0), 0);
   if (sumPerc <= 0) {
     if (sumGramsEl) sumGramsEl.textContent = "0 g";
@@ -138,16 +131,17 @@ function calcularPesos() {
     ing._grams = Math.round(ing._raw || 0);
   });
 
-  // Round correction
+  // rounding correction
   let totalRounded = ingredientes.reduce((s, it) => s + (it._grams || 0), 0);
   const delta = Math.round(pesoTotal) - totalRounded;
   if (delta !== 0) {
-    // prefer adjusting the flour ingredient if exists, else largest %
-
-    let idx = ingredientes.findIndex(it => Math.abs((toNum(it.porcentaje) || 0) - 100) < 1e-6);
+    // prefer flour if exists
+    let idx = ingredientes.findIndex(it => Math.abs(toNum(it.porcentaje) - 100) < 1e-6);
     if (idx === -1) {
       let max = -Infinity;
-      ingredientes.forEach((it, i) => { if ((toNum(it.porcentaje) || 0) > max) { max = toNum(it.porcentaje) || 0; idx = i; }});
+      ingredientes.forEach((it, i) => {
+        if (toNum(it.porcentaje) > max) { max = toNum(it.porcentaje); idx = i; }
+      });
     }
     if (typeof idx === "number" && ingredientes[idx]) {
       ingredientes[idx]._grams = (ingredientes[idx]._grams || 0) + delta;
@@ -155,7 +149,7 @@ function calcularPesos() {
     }
   }
 
-  // render rows
+  // render table
   if (tablaIngredientes) {
     ingredientes.forEach(ing => {
       const tr = document.createElement("tr");
@@ -163,36 +157,37 @@ function calcularPesos() {
       tablaIngredientes.appendChild(tr);
     });
   }
+
   if (sumGramsEl) sumGramsEl.textContent = totalRounded + " g";
 
   actualizarStats();
 }
 
+// Update technical stats: hydration, starter %, salt
 function actualizarStats() {
-  // compute grams
   let flourW = 0, waterW = 0, milkW = 0, eggW = 0, fatW = 0, yogurtW = 0, starterW = 0, saltW = 0, othersW = 0;
   ingredientes.forEach(it => {
-    const g = toNum(it._grams || it._raw);
+    const grams = toNum(it._grams || it._raw);
     const cls = classifyIngredientName(it.nombre);
-    if (cls === "flour") flourW += g;
-    else if (cls === "water") waterW += g;
-    else if (cls === "milk") milkW += g;
-    else if (cls === "egg") eggW += g;
-    else if (cls === "fat") fatW += g;
-    else if (cls === "yogurt") yogurtW += g;
-    else if (cls === "starter") starterW += g;
-    else if (cls === "salt") saltW += g;
-    else othersW += g;
+    if (cls === "flour") flourW += grams;
+    else if (cls === "water") waterW += grams;
+    else if (cls === "milk") milkW += grams;
+    else if (cls === "egg") eggW += grams;
+    else if (cls === "fat") fatW += grams;
+    else if (cls === "yogurt") yogurtW += grams;
+    else if (cls === "starter") starterW += grams;
+    else if (cls === "salt") saltW += grams;
+    else othersW += grams;
   });
 
-  // Starter hydration: assume 100% if not provided; if there is an input starterHydration use it
+  // starter hydration: allows input #starterHydration (optional)
   const starterHydrationEl = $("starterHydration");
   const starterH = starterHydrationEl ? toNum(starterHydrationEl.value) : 100;
-  // split starterW into water & flour-equivalent
+
+  // decompose starter grams into water and flour-equivalent
   const starterWater = starterW * (starterH / (100 + starterH));
   const starterFlourEq = Math.max(0, starterW - starterWater);
 
-  // water from other liquids
   const milkWater = milkW * (WATER_FACTORS.milk || 0.87);
   const eggWater = eggW * (WATER_FACTORS.egg || 0.75);
   const fatWater = fatW * (WATER_FACTORS.fat || 0.16);
@@ -207,10 +202,7 @@ function actualizarStats() {
   const hidrAdicional = harinaTotal > 0 ? ((aguaDesdeOtros + aguaDesdeStarter) / harinaTotal) * 100 : NaN;
   const hidrTotal = harinaTotal > 0 ? ((aguaDirecta + aguaDesdeOtros + aguaDesdeStarter) / harinaTotal) * 100 : NaN;
 
-  // salinidad sobre harina
   const salSobreHarina = harinaTotal > 0 ? (saltW / harinaTotal) * 100 : NaN;
-
-  // starter % sobre masa efectiva
   const pesoEfectivo = getEffectivePesoTotal();
   const starterPct = pesoEfectivo > 0 ? (starterW / pesoEfectivo) * 100 : NaN;
 
@@ -219,72 +211,50 @@ function actualizarStats() {
   if (statSaltPct) statSaltPct.textContent = isFinite(salSobreHarina) ? salSobreHarina.toFixed(2) + "% (sobre harina)" : "—";
   if (statPesoEfectivo) statPesoEfectivo.textContent = Math.round(pesoEfectivo) + " g";
 
-  // Rendimiento: if two subfields exist compute total and update multiplier accordingly
+  // Rendimiento display and automatic multiplier sync
   const piezas = rendPiezasInput ? Math.max(0, parseInt(rendPiezasInput.value) || 0) : 0;
   const pesoUnit = rendPesoUnitInput ? Math.max(0, parseFloat(rendPesoUnitInput.value) || 0) : 0;
   if (statRendimiento) {
-    if (piezas > 0 && pesoUnit > 0) {
-      statRendimiento.textContent = `${piezas} × ${pesoUnit} g = ${piezas * pesoUnit} g`;
-    } else {
-      // if legacy text field exists
-      if (rendimientoTextInput && rendimientoTextInput.value) statRendimiento.textContent = rendimientoTextInput.value;
-      else statRendimiento.textContent = "—";
-    }
+    if (piezas > 0 && pesoUnit > 0) statRendimiento.textContent = `${piezas} × ${pesoUnit} g = ${piezas * pesoUnit} g`;
+    else statRendimiento.textContent = "—";
   }
 
-  // Synchronize multiplier when rendimiento fields are set:
-  if (piezas > 0 && pesoUnit > 0) {
-    const totalFromRend = piezas * pesoUnit;
-    // update pesoTotal and multiplier accordingly (keep base as original pesoTotalInput value if possible)
-    const basePeso = parseFloat(pesoTotalInput && pesoTotalInput.dataset.base) || toNum(pesoTotalInput && pesoTotalInput.value) || 1000;
-    // set the raw total into pesoTotalInput (this is the "base" mass before multiplier)
-    pesoTotalInput.value = totalFromRend;
-    // compute multiplier relative to previously saved dataset.base (if not present, set dataset.base=totalFromRend)
-    if (!pesoTotalInput.dataset.base) pesoTotalInput.dataset.base = totalFromRend;
-    // multiplier = newTotal / dataset.base
-    const newMult = totalFromRend / (parseFloat(pesoTotalInput.dataset.base) || totalFromRend || 1);
-    if (pesoMultiplierInput) pesoMultiplierInput.value = Number.isFinite(newMult) ? (Math.round(newMult * 100) / 100) : 1;
-  } else {
-    // if multiplier changed manually, attempt to update estimated rendimiento pieces
-    const mult = toNum(pesoMultiplierInput && pesoMultiplierInput.value) || 1;
-    const base = parseFloat(pesoTotalInput && pesoTotalInput.dataset.base) || toNum(pesoTotalInput && pesoTotalInput.value) || 0;
-    const currTotal = base * mult;
-    if (pesoUnit > 0 && piezas === 0) {
-      const estPiezas = Math.max(0, Math.round(currTotal / pesoUnit));
-      if (rendPiezasInput) rendPiezasInput.value = estPiezas || "";
-    }
+  // Sync multiplier from rendimiento if both present:
+  if (piezas > 0 && pesoUnit > 0 && pesoTotalInput) {
+    const newTotal = piezas * pesoUnit;
+    // If dataset.base set, use it as original 'base' mass; otherwise set base to newTotal
+    if (!pesoTotalInput.dataset.base) pesoTotalInput.dataset.base = String(newTotal);
+    const base = parseFloat(pesoTotalInput.dataset.base) || newTotal || 1;
+    pesoTotalInput.value = newTotal;
+    if (pesoMultiplierInput) pesoMultiplierInput.value = Math.round((newTotal / base) * 100) / 100;
   }
 }
 
-// ---------------- Render helpers ----------------
-function renderNombre() {
+// ---------------- Render UI helpers ----------------
+function renderNombreEditor() {
   if (!nombreRecetaContainer) return;
-  // keep behavior: in edit mode it's an input; but to be simple: always show input to allow quick naming
   nombreRecetaContainer.innerHTML = "";
   const input = document.createElement("input");
   input.type = "text";
-  input.id = "nombreReceta";
   input.placeholder = "Ej. Baguette clásica";
   input.value = nombreRecetaContainer.dataset.value || "";
   input.addEventListener("input", (e) => nombreRecetaContainer.dataset.value = e.target.value);
   nombreRecetaContainer.appendChild(input);
 }
 
-function renderInstrucciones() {
+function renderInstruccionesEditor() {
   if (!instrAmasadoContainer || !instrHorneadoContainer) return;
-  // amasado
   instrAmasadoContainer.innerHTML = "";
   const labA = document.createElement("label"); labA.textContent = "Amasado / Fermentación";
-  const taA = document.createElement("textarea"); taA.id = "instrAmasado";
-  taA.rows = 3; taA.value = instrAmasadoContainer.dataset.value || "";
+  const taA = document.createElement("textarea"); taA.id = "instrAmasado"; taA.rows = 3;
+  taA.value = instrAmasadoContainer.dataset.value || "";
   taA.addEventListener("input", e => instrAmasadoContainer.dataset.value = e.target.value);
   instrAmasadoContainer.appendChild(labA); instrAmasadoContainer.appendChild(taA);
 
-  // horneado
   instrHorneadoContainer.innerHTML = "";
   const labH = document.createElement("label"); labH.textContent = "Horneado";
-  const taH = document.createElement("textarea"); taH.id = "instrHorneado";
-  taH.rows = 2; taH.value = instrHorneadoContainer.dataset.value || "";
+  const taH = document.createElement("textarea"); taH.id = "instrHorneado"; taH.rows = 2;
+  taH.value = instrHorneadoContainer.dataset.value || "";
   taH.addEventListener("input", e => instrHorneadoContainer.dataset.value = e.target.value);
   instrHorneadoContainer.appendChild(labH); instrHorneadoContainer.appendChild(taH);
 }
@@ -295,15 +265,32 @@ function renderIngredientesEditor() {
   ingredientes.forEach((ing, idx) => {
     const row = document.createElement("div");
     row.className = "ingredient-row";
-    const name = document.createElement("input"); name.type = "text"; name.value = ing.nombre || ""; name.className = "nombreIng";
-    const pct = document.createElement("input"); pct.type = "number"; pct.step = "0.1"; pct.min = "0"; pct.value = toNum(ing.porcentaje); pct.className = "pctIng";
-    const del = document.createElement("button"); del.type = "button"; del.className = "icon-btn danger ing-delete"; del.innerHTML = "<i class='bx bx-x'></i>";
+
+    const name = document.createElement("input");
+    name.type = "text";
+    name.value = ing.nombre || "";
+    name.className = "nombreIng";
+    name.placeholder = "Nombre";
+
+    const pct = document.createElement("input");
+    pct.type = "number";
+    pct.value = toNum(ing.porcentaje);
+    pct.step = "0.1";
+    pct.min = 0;
+    pct.className = "pctIng";
+    pct.placeholder = "% panadero";
+
+    const del = document.createElement("button");
+    del.type = "button";
+    del.className = "icon-btn danger ing-delete";
+    del.innerHTML = "<i class='bx bx-x'></i>";
+    del.addEventListener("click", () => { ingredientes.splice(idx, 1); renderIngredientesEditor(); calcularPesos(); });
+
+    name.addEventListener("input", (e) => { ingredientes[idx].nombre = e.target.value; calcularPesos(); });
+    pct.addEventListener("input", (e) => { ingredientes[idx].porcentaje = parseFloat(e.target.value) || 0; calcularPesos(); });
+
     row.appendChild(name); row.appendChild(pct); row.appendChild(del);
     ingredientesDiv.appendChild(row);
-
-    name.addEventListener("input", e => { ingredientes[idx].nombre = e.target.value; calcularPesos(); });
-    pct.addEventListener("input", e => { ingredientes[idx].porcentaje = parseFloat(e.target.value) || 0; calcularPesos(); });
-    del.addEventListener("click", () => { ingredientes.splice(idx,1); renderIngredientesEditor(); calcularPesos(); });
   });
 }
 
@@ -315,10 +302,7 @@ async function cargarRecetas() {
   try {
     const q = query(collection(db, COLL), orderBy("nombre", "asc"));
     const snap = await getDocs(q);
-    snap.forEach(docSnap => {
-      recetasCache.push({ id: docSnap.id, data: docSnap.data() });
-    });
-    // populate select
+    snap.forEach(d => recetasCache.push({ id: d.id, data: d.data() }));
     recetasCache.forEach(r => {
       const opt = document.createElement("option");
       opt.value = r.id;
@@ -339,7 +323,6 @@ async function cargarReceta(id) {
     const d = snap.data();
     recetaIdActual = id;
     nombreRecetaContainer.dataset.value = d.nombre || "";
-    // set inputs
     if (pesoTotalInput) pesoTotalInput.value = d.pesoTotal || 1000;
     if (pesoMultiplierInput) pesoMultiplierInput.value = (d.pesoMultiplier != null) ? d.pesoMultiplier : 1;
     if (rendPiezasInput && d.rendimiento && d.rendimiento.piezas) rendPiezasInput.value = d.rendimiento.piezas;
@@ -356,15 +339,14 @@ async function cargarReceta(id) {
 
 async function guardarReceta() {
   const nombre = (nombreRecetaContainer.dataset.value || "").trim();
-  if (!nombre) return alert("La receta necesita un nombre");
+  if (!nombre) return alert("Asigna un nombre a la receta");
   const recetaObj = {
     nombre,
     pesoTotal: toNum(pesoTotalInput && pesoTotalInput.value),
     pesoMultiplier: toNum(pesoMultiplierInput && pesoMultiplierInput.value),
     rendimiento: {
-      piezas: rendPiezasInput ? parseInt(rendPiezasInput.value) || 0 : (rendimientoTextInput ? rendimientoTextInput.value : null),
-      pesoPorPieza: rendPesoUnitInput ? parseFloat(rendPesoUnitInput.value) || 0 : null,
-      raw: rendimientoTextInput ? rendimientoTextInput.value : null
+      piezas: rendPiezasInput ? (parseInt(rendPiezasInput.value) || 0) : 0,
+      pesoPorPieza: rendPesoUnitInput ? (parseFloat(rendPesoUnitInput.value) || 0) : 0
     },
     instrAmasado: instrAmasadoContainer.dataset.value || "",
     instrHorneado: instrHorneadoContainer.dataset.value || "",
@@ -411,8 +393,7 @@ async function eliminarReceta() {
   if (!confirm("¿Seguro que deseas eliminar esta receta?")) return;
   try {
     await deleteDoc(doc(db, COLL, recetaIdActual));
-    recetaIdActual = null;
-    ingredientes = [];
+    recetaIdActual = null; ingredientes = [];
     renderAll();
     await cargarRecetas();
     alert("Receta eliminada 🗑️");
@@ -426,7 +407,7 @@ async function eliminarReceta() {
 function exportarCSV() {
   const rows = [
     ["Ingrediente", "% Panadero", "Peso (g)"],
-    ...ingredientes.map(i => [i.nombre, (toNum(i.porcentaje)).toFixed(2), (i._grams||0)])
+    ...ingredientes.map(i => [i.nombre, (toNum(i.porcentaje)).toFixed(2), (i._grams || 0)])
   ];
   const csv = rows.map(r => r.map(c => `"${String(c).replace(/"/g,'""')}"`).join(",")).join("\n");
   const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
@@ -440,17 +421,16 @@ function exportarCSV() {
 async function loadLogoDataURI() {
   try {
     const resp = await fetch("./logo.b64.txt");
-    if (!resp.ok) throw new Error("No logo file");
+    if (!resp.ok) throw new Error("logo.b64.txt not found");
     const txt = (await resp.text()).trim();
     logoDataURI = txt.startsWith("data:") ? txt : "data:image/png;base64," + txt;
-    console.log("Logo loaded", (logoDataURI || "").length);
   } catch (err) {
-    console.warn("Logo not loaded:", err);
+    console.warn("logo not loaded:", err);
     logoDataURI = null;
   }
 }
 
-// ---------------- PDF Generation (jsPDF via window.jspdf) ----------------
+// ---------------- PDF Generation ----------------
 function formatDateTimeForPDF(d = new Date()) {
   const pad = n => String(n).padStart(2, "0");
   return `${pad(d.getDate())}/${pad(d.getMonth()+1)}/${d.getFullYear()} ${pad(d.getHours())}:${pad(d.getMinutes())}`;
@@ -458,7 +438,7 @@ function formatDateTimeForPDF(d = new Date()) {
 
 function generatePDF({ preview = false } = {}) {
   if (!window.jspdf) {
-    alert("jsPDF no encontrado en la página.");
+    alert("jsPDF no está cargado en la página.");
     return;
   }
   const { jsPDF } = window.jspdf;
@@ -467,7 +447,7 @@ function generatePDF({ preview = false } = {}) {
   const margin = 18;
   let y = margin;
 
-  // Logo (auto-scale)
+  // Logo (auto-scale, maintain proportion)
   if (logoDataURI) {
     try {
       const maxW = pageW - margin * 2;
@@ -477,11 +457,11 @@ function generatePDF({ preview = false } = {}) {
       doc.addImage(logoDataURI, x, y, imgW, imgH);
       y += imgH + 6;
     } catch (e) {
-      console.warn("Error adding logo to PDF:", e);
+      console.warn("Error add logo:", e);
     }
   }
 
-  // Title - dynamic font size to fit
+  // Title with dynamic font-size to avoid overflow
   const title = nombreRecetaContainer.dataset.value || "Receta sin nombre";
   doc.setFont("helvetica", "bold");
   let fontSize = 18;
@@ -490,17 +470,16 @@ function generatePDF({ preview = false } = {}) {
     fontSize -= 1;
     doc.setFontSize(fontSize);
   }
-  doc.setTextColor(123, 30, 58); // vino
+  doc.setTextColor(123, 30, 58);
   doc.text(title, pageW / 2, y + fontSize / 2, { align: "center" });
   y += fontSize + 6;
 
-  // Meta: peso total y rendimiento
+  // Meta info: peso total y rendimiento
   const pesoTotalText = `${Math.round(getEffectivePesoTotal())} g`;
   let rendimientoText = "—";
   const piezas = rendPiezasInput ? parseInt(rendPiezasInput.value) || 0 : 0;
   const pesoUnit = rendPesoUnitInput ? parseFloat(rendPesoUnitInput.value) || 0 : 0;
   if (piezas > 0 && pesoUnit > 0) rendimientoText = `${piezas} panes × ${pesoUnit} g = ${piezas * pesoUnit} g`;
-  else if (rendimientoTextInput && rendimientoTextInput.value) rendimientoText = rendimientoTextInput.value;
 
   doc.setFont("helvetica", "normal");
   doc.setFontSize(11);
@@ -510,17 +489,18 @@ function generatePDF({ preview = false } = {}) {
   doc.text(`Rendimiento: ${rendimientoText}`, margin, y);
   y += 9;
 
-  // Stats (hydration, starter, salt)
+  // Stats
   const hidr = statHydrationTotal ? statHydrationTotal.textContent : "—";
-  const starterPct = statStarterPct ? statStarterPct.textContent : "—";
+  const starter = statStarterPct ? statStarterPct.textContent : "—";
   const salt = statSaltPct ? statSaltPct.textContent : "—";
 
   doc.text(`Hidratación total: ${hidr}`, margin, y); y += 6;
-  doc.text(`Starter (% masa total): ${starterPct}`, margin, y); y += 6;
+  doc.text(`Starter (% masa total): ${starter}`, margin, y); y += 6;
   doc.text(`Salinidad: ${salt}`, margin, y); y += 10;
 
-  // Ingredients table (autoTable)
+  // Ingredients table
   const body = ingredientes.map(i => [i.nombre, (toNum(i.porcentaje)).toFixed(2) + "%", (i._grams || 0) + " g"]);
+
   doc.autoTable({
     startY: y,
     margin: { left: margin, right: margin },
@@ -544,14 +524,13 @@ function generatePDF({ preview = false } = {}) {
   const amasadoLines = doc.splitTextToSize("Amasado / Fermentación: " + amasado, pageW - margin * 2);
   amasadoLines.forEach(line => {
     if (y > doc.internal.pageSize.getHeight() - margin - 30) { doc.addPage(); y = margin; }
-    doc.text(line, margin, y);
-    y += 6;
+    doc.text(line, margin, y); y += 6;
   });
+
   const horneadoLines = doc.splitTextToSize("Horneado: " + horneado, pageW - margin * 2);
   horneadoLines.forEach(line => {
     if (y > doc.internal.pageSize.getHeight() - margin - 30) { doc.addPage(); y = margin; }
-    doc.text(line, margin, y);
-    y += 6;
+    doc.text(line, margin, y); y += 6;
   });
 
   // Footer
@@ -571,17 +550,19 @@ function generatePDF({ preview = false } = {}) {
   }
 }
 
-// ---------------- Sharing ----------------
+// ---------------- Sharing helpers ----------------
 function makeShareLink(id) {
   const mult = toNum(pesoMultiplierInput && pesoMultiplierInput.value) || 1;
   return `${location.origin}${location.pathname}?receta=${encodeURIComponent(id)}&mult=${encodeURIComponent(mult)}`;
 }
+
 function shareByWhatsApp() {
   if (!recetaIdActual) return alert("Selecciona una receta primero");
   const link = makeShareLink(recetaIdActual);
   const wa = `https://wa.me/?text=${encodeURIComponent("Te comparto esta receta: " + link)}`;
   window.open(wa, "_blank");
 }
+
 function copyShareLink() {
   if (!recetaIdActual) return alert("Selecciona una receta primero");
   const link = makeShareLink(recetaIdActual);
@@ -594,52 +575,40 @@ function wireEvents() {
     ingredientes.push({ nombre: "Ingrediente", porcentaje: 0 });
     renderIngredientesEditor();
   });
-  btnRecalcular && btnRecalcular.addEventListener("click", () => { calcularPesos(); tablaIngredientes && tablaIngredientes.scrollIntoView({ behavior: "smooth" }); });
+
   btnGuardar && btnGuardar.addEventListener("click", guardarReceta);
   btnDuplicar && btnDuplicar.addEventListener("click", duplicarReceta);
   btnEliminar && btnEliminar.addEventListener("click", eliminarReceta);
   btnExportCSV && btnExportCSV.addEventListener("click", exportarCSV);
   btnExportar && btnExportar.addEventListener("click", () => generatePDF({ preview: false }));
   btnPreviewPDF && btnPreviewPDF.addEventListener("click", () => generatePDF({ preview: true }));
+  btnRecalcular && btnRecalcular.addEventListener("click", () => { calcularPesos(); tablaIngredientes && tablaIngredientes.scrollIntoView({ behavior: "smooth" }); });
+
   btnCompartir && btnCompartir.addEventListener("click", () => {
-    // show small menu: copy / whatsapp
-    const choice = confirm("Presiona OK para compartir por WhatsApp, Cancel para copiar el enlace.");
+    const choice = confirm("Presiona OK para compartir por WhatsApp, Cancel para copiar enlace.");
     if (choice) shareByWhatsApp(); else copyShareLink();
   });
 
   if (recetaSelect) recetaSelect.addEventListener("change", e => {
     const id = e.target.value;
     if (id) cargarReceta(id);
-    else { /* new */ recetaIdActual = null; ingredientes = []; renderAll(); }
+    else { recetaIdActual = null; ingredientes = []; renderAll(); }
   });
 
-  // inputs that affect calculations
   [pesoTotalInput, pesoMultiplierInput].forEach(el => {
     el && el.addEventListener("input", () => {
-      // if no base dataset set, set it to current raw value on first manual edit
       if (pesoTotalInput && !pesoTotalInput.dataset.base) pesoTotalInput.dataset.base = pesoTotalInput.value || "1000";
       calcularPesos();
     });
   });
 
-  // rendimiento fields: if both provided, set pesoTotal and multiplier; otherwise recalc estimated pieces
-  if (rendPiezasInput) rendPiezasInput.addEventListener("input", () => {
-    calcularPesos();
-    // if both present, sync multiplier
-    syncMultiplierFromRendimiento();
-  });
-  if (rendPesoUnitInput) rendPesoUnitInput.addEventListener("input", () => {
-    calcularPesos();
-    syncMultiplierFromRendimiento();
-  });
+  if (rendPiezasInput) rendPiezasInput.addEventListener("input", () => { calcularPesos(); syncMultiplierFromRendimiento(); });
+  if (rendPesoUnitInput) rendPesoUnitInput.addEventListener("input", () => { calcularPesos(); syncMultiplierFromRendimiento(); });
 
-  // re-render editor when ingredients change
-  // debounce search & sorting if present
   searchRecetas && searchRecetas.addEventListener("input", applySearchSortRender);
   sortField && sortField.addEventListener("change", applySearchSortRender);
   btnSortToggle && btnSortToggle.addEventListener("click", () => { btnSortToggle.classList.toggle("active"); applySearchSortRender(); });
 
-  // theme toggle (optional)
   btnToggleTheme && btnToggleTheme.addEventListener("click", () => {
     const now = document.documentElement.getAttribute("data-theme") === "dark" ? "light" : "dark";
     if (now === "dark") document.documentElement.setAttribute("data-theme", "dark"); else document.documentElement.removeAttribute("data-theme");
@@ -647,24 +616,21 @@ function wireEvents() {
   });
 }
 
-// When rendimiento fields are used, compute multiplier and set pesoTotal accordingly
+// Update multiplier & pesoTotal when rendimiento fields set
 function syncMultiplierFromRendimiento() {
   const piezas = rendPiezasInput ? (parseInt(rendPiezasInput.value) || 0) : 0;
   const pesoUnit = rendPesoUnitInput ? (parseFloat(rendPesoUnitInput.value) || 0) : 0;
   if (piezas > 0 && pesoUnit > 0 && pesoTotalInput) {
     const newTotal = piezas * pesoUnit;
-    const base = parseFloat(pesoTotalInput.dataset.base) || newTotal;
-    // set pesoTotal to newTotal (this is the 'base' mass for calculations)
+    if (!pesoTotalInput.dataset.base) pesoTotalInput.dataset.base = String(newTotal);
+    const base = parseFloat(pesoTotalInput.dataset.base) || newTotal || 1;
     pesoTotalInput.value = newTotal;
-    pesoTotalInput.dataset.base = base; // preserve original base if not set
-    // compute multiplier
-    const newMult = newTotal / (base || newTotal || 1);
-    if (pesoMultiplierInput) pesoMultiplierInput.value = Math.round(newMult * 100) / 100;
+    if (pesoMultiplierInput) pesoMultiplierInput.value = Math.round((newTotal / base) * 100) / 100;
     calcularPesos();
   }
 }
 
-// ---------------- Search & Sort (basic) ----------------
+// ---------------- Search & Sort ----------------
 function applySearchSortRender() {
   if (!recetaSelect) return;
   const q = (searchRecetas && searchRecetas.value || "").toLowerCase().trim();
@@ -674,7 +640,7 @@ function applySearchSortRender() {
     const ingreds = (r.data.ingredientes || []).map(i => (i.nombre||"").toLowerCase()).join(" ");
     return n.includes(q) || ingreds.includes(q);
   });
-  // sorting by nombre by default (if sortField absent)
+
   const field = (sortField && sortField.value) || "nombre";
   results.sort((a,b) => {
     let va = a.data[field], vb = b.data[field];
@@ -684,7 +650,7 @@ function applySearchSortRender() {
     if (typeof vb === "string") vb = vb.toLowerCase();
     if (va < vb) return -1; if (va > vb) return 1; return 0;
   });
-  // re-render select
+
   recetaSelect.innerHTML = `<option value="">-- Agregar una receta ➕ --</option>`;
   results.forEach(r => {
     const opt = document.createElement("option");
@@ -697,7 +663,7 @@ function applySearchSortRender() {
 // ---------------- Shared view via URL ----------------
 async function handleSharedView() {
   const params = new URLSearchParams(window.location.search);
-  const id = params.get("receta");
+  const id = params.get("receta") || params.get("id");
   const mult = parseFloat(params.get("mult")) || null;
   if (!id) return;
   try {
@@ -711,13 +677,12 @@ async function handleSharedView() {
     if (d.rendimiento) {
       if (rendPiezasInput && d.rendimiento.piezas) rendPiezasInput.value = d.rendimiento.piezas;
       if (rendPesoUnitInput && d.rendimiento.pesoPorPieza) rendPesoUnitInput.value = d.rendimiento.pesoPorPieza;
-      if (rendimientoTextInput && !d.rendimiento.piezas) rendimientoTextInput.value = d.rendimiento.raw || "";
     }
     instrAmasadoContainer.dataset.value = d.instrAmasado || "";
     instrHorneadoContainer.dataset.value = d.instrHorneado || "";
     ingredientes = (d.ingredientes || []).map(it => ({ ...it }));
     renderAll();
-    // If shared view, let receiver tweak numbers — do not block editing, per your request
+    // leave editing enabled so receiver can recalc
   } catch (err) {
     console.error("Shared view load error:", err);
   }
@@ -725,11 +690,10 @@ async function handleSharedView() {
 
 // ---------------- Render all ----------------
 function renderAll() {
-  renderNombre();
-  renderInstrucciones();
+  renderNombreEditor();
+  renderInstruccionesEditor();
   renderIngredientesEditor();
   calcularPesos();
-  // ensure stats shown
   actualizarStats();
 }
 
@@ -738,17 +702,23 @@ async function init() {
   await loadLogoDataURI();
   await cargarRecetas();
   wireEvents();
-  // set sensible defaults
+  // defaults
   if (pesoTotalInput && !pesoTotalInput.value) pesoTotalInput.value = 1000;
   if (pesoMultiplierInput && !pesoMultiplierInput.value) pesoMultiplierInput.value = 1;
   renderAll();
   await handleSharedView();
+  console.log("Gestor de Recetas Fermentos inicializado");
 }
 
 // ensure DOM ready before init
 window.addEventListener("DOMContentLoaded", init);
 
-// expose some helpers for debugging (optional)
+// expose small API for debugging
 window._fermenta = {
-  calcularPesos, actualizarStats, cargarRecetas, cargarReceta, guardarReceta, generatePDF
+  calcularPesos,
+  actualizarStats,
+  cargarRecetas,
+  cargarReceta,
+  guardarReceta,
+  generatePDF
 };
