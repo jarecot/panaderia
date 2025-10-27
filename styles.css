@@ -1,272 +1,173 @@
-/* =======================
-   Estilos base Fermentos App
-   ======================= */
+/* styles.css - Fermentos UI
+   - Poppins
+   - Paleta vino/negro
+   - Claro por defecto; oscuro por sistema or manual
+*/
 
-:root {
-  --color-bg: #ffffff;
-  --color-text: #1a1a1a;
-  --color-accent: #7b1f2d; /* vino */
-  --color-accent-light: #a43649;
-  --color-border: #ddd;
-  --color-card: #f8f8f8;
-  --color-danger: #b3261e;
-
-  --radius: 10px;
-  --transition: 0.25s ease;
-  --font-main: 'Poppins', sans-serif;
+/* ---------- variables ---------- */
+:root{
+  --wine: #8b1e3f;
+  --wine-strong: #b0333e; /* for dark mode contrast */
+  --bg-light: #ffffff;
+  --bg-surface: #fffaf8;
+  --muted: #666;
+  --text: #111;
+  --border: #e6e0df;
+  --card-shadow: 0 4px 14px rgba(0,0,0,0.06);
+  --radius: 12px;
+  --transition: 0.3s;
+  --accent-contrast: #fff;
 }
 
-/* === Modo oscuro automático === */
-@media (prefers-color-scheme: dark) {
-  :root {
-    --color-bg: #121212;
-    --color-text: #f2f2f2;
-    --color-card: #1f1f1f;
-    --color-border: #333;
-  }
-}
-
-/* === Modo oscuro manual === */
-body.dark {
-  --color-bg: #121212;
-  --color-text: #f2f2f2;
-  --color-card: #1f1f1f;
-  --color-border: #333;
-}
-
-/* =======================
-   Estilos generales
-   ======================= */
+/* default (light) */
 body {
+  font-family: 'Poppins', sans-serif;
   margin: 0;
-  font-family: var(--font-main);
-  background-color: var(--color-bg);
-  color: var(--color-text);
-  transition: background-color var(--transition), color var(--transition);
+  background: var(--bg-light);
+  color: var(--text);
+  -webkit-font-smoothing:antialiased;
+  -moz-osx-font-smoothing:grayscale;
+  transition: background var(--transition), color var(--transition);
 }
 
-h1, h2, h3, h4 {
-  margin: 0;
-  font-weight: 600;
+/* dark mode toggled class */
+body.dark {
+  --bg-light: #0f1113;
+  --bg-surface: #121315;
+  --muted: #d1d1d1;
+  --text: #f3f3f3;
+  --border: #222426;
+  --card-shadow: 0 6px 20px rgba(0,0,0,0.5);
+  --wine: #b0333e;
 }
 
-h1 span {
-  color: var(--color-accent);
-}
-
-a {
-  color: var(--color-accent);
-  text-decoration: none;
-  transition: color var(--transition);
-}
-a:hover {
-  color: var(--color-accent-light);
-}
-
-/* =======================
-   Header
-   ======================= */
-.app-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  background: var(--color-card);
-  border-bottom: 2px solid var(--color-accent);
-  padding: 10px 20px;
-  position: sticky;
-  top: 0;
-  z-index: 100;
-}
-
-.app-header h1 {
-  font-size: 1.4rem;
-}
-
-.header-right {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-}
-
-/* Botón de tema */
-#btnToggleTheme {
-  background: transparent;
-  border: none;
-  color: var(--color-text);
-  font-size: 1.4rem;
-  cursor: pointer;
-  transition: transform var(--transition);
-}
-#btnToggleTheme:hover {
-  transform: scale(1.1);
-}
-
-/* =======================
-   Layout principal
-   ======================= */
-.main-content {
-  max-width: 950px;
-  margin: 0 auto;
-  padding: 20px;
-}
-
-section {
-  background: var(--color-card);
-  border-radius: var(--radius);
-  padding: 15px 20px;
-  margin-bottom: 20px;
-  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.08);
-}
-
-/* =======================
-   Campos, formularios y botones
-   ======================= */
-label {
-  font-weight: 500;
-  display: block;
-  margin-bottom: 5px;
-}
-
-input, select, textarea {
-  width: 100%;
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius);
-  padding: 8px;
-  font-family: inherit;
-  background-color: var(--color-bg);
-  color: var(--color-text);
-  transition: border var(--transition), background-color var(--transition);
-}
-
-input:focus, select:focus, textarea:focus {
-  outline: none;
-  border-color: var(--color-accent);
-}
-
-button {
-  cursor: pointer;
-  border: none;
-  border-radius: var(--radius);
-  padding: 8px 14px;
-  font-family: inherit;
-  font-weight: 500;
-  transition: background-color var(--transition), color var(--transition);
-}
-
-/* === Botones === */
-.primary-btn {
-  background: var(--color-accent);
+/* ===== header ===== */
+.app-header{
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+  padding:12px 18px;
+  background: linear-gradient(90deg, rgba(139,30,63,0.95) 0%, rgba(139,30,63,0.85) 100%);
   color: #fff;
 }
-.primary-btn:hover {
-  background: var(--color-accent-light);
-}
+.header-left { display:flex; align-items:center; gap:12px; }
+.logo{ height:40px; width:auto; object-fit:contain; border-radius:8px; }
+.app-title{ font-size:1.05rem; margin:0; font-weight:600; letter-spacing:0.2px; }
+.app-title span { font-weight:400; margin-right:6px; }
 
-.danger-btn {
-  background: var(--color-danger);
-  color: #fff;
+/* icon button (header) */
+.icon-btn{
+  display:inline-flex;
+  align-items:center;
+  gap:8px;
+  background:transparent;
+  border:none;
+  color:inherit;
+  padding:8px;
+  border-radius:8px;
+  cursor:pointer;
+  transition: transform 0.18s ease, background 0.18s ease;
 }
-.danger-btn:hover {
-  background: #e14033;
-}
+.icon-btn i { font-size:1.15rem; }
 
-.icon-btn {
-  background: none;
-  border: none;
-  color: var(--color-text);
-  cursor: pointer;
-}
+/* header icon hover */
+.icon-btn:hover { transform: translateY(-3px); background: rgba(255,255,255,0.06); }
 
-/* =======================
-   Secciones específicas
-   ======================= */
-
-/* Selector de recetas */
-.receta-selector {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 10px;
-  align-items: center;
-}
-.receta-selector select {
-  flex: 1;
-}
-
-/* Info receta */
-.config-pesos, .rendimiento-container {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 15px;
-}
-.campo {
-  flex: 1;
-  min-width: 150px;
-}
-
-/* Ingredientes */
-.ingredientes table {
-  width: 100%;
-  border-collapse: collapse;
-  margin-top: 10px;
-}
-.ingredientes th, .ingredientes td {
-  padding: 8px 10px;
-  border-bottom: 1px solid var(--color-border);
-  text-align: left;
-}
-.ingredientes th {
-  background: var(--color-accent);
-  color: #fff;
-  font-weight: 500;
-}
-.ingredientes tfoot td {
-  font-weight: 600;
-  border-top: 2px solid var(--color-accent);
-}
-
-/* Estadísticas */
-.stats-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
-  gap: 10px;
-}
-.stats-grid div {
-  background: var(--color-bg);
-  border: 1px solid var(--color-border);
+/* ===== container and panels ===== */
+.container{ max-width:980px; margin:20px auto; padding:0 16px; }
+.panel{
+  background: var(--bg-surface);
   border-radius: var(--radius);
-  padding: 10px;
-  text-align: center;
+  padding:18px;
+  box-shadow: var(--card-shadow);
+  border:1px solid var(--border);
+  margin-bottom:18px;
 }
 
-/* Acciones */
-.botones-acciones {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 10px;
-  justify-content: center;
+/* rows and forms */
+.label-inline { font-weight:600; display:block; margin-bottom:8px; }
+.select-row{ display:flex; gap:12px; align-items:center; }
+.select-row select { flex:1; padding:10px 12px; border-radius:8px; border:1px solid var(--border); background:transparent; color:var(--text); }
+
+/* small helpers */
+.row{ display:flex; gap:12px; align-items:center; }
+.form-row{ display:flex; gap:12px; flex-wrap:wrap; margin-top:12px; }
+.campo{ flex:1; min-width:180px; }
+.campo label{ display:block; font-weight:600; margin-bottom:6px; }
+.campo input, textarea, select { width:100%; padding:9px 10px; border-radius:10px; border:1px solid var(--border); background:transparent; transition: all var(--transition); color:var(--text); }
+
+/* instructions look */
+.instr-container textarea{ width:100%; min-height:64px; padding:10px; border-radius:10px; border:1px solid var(--border); background:transparent; resize:vertical; }
+
+/* ingredients editor rows */
+.ingredientes-editor{ margin-top:10px; }
+.ingredient-row{ display:flex; gap:8px; align-items:center; margin-bottom:8px; }
+.ingredient-row input[type="text"]{ flex:1; padding:8px; border-radius:8px; border:1px solid var(--border); }
+.ingredient-row input[type="number"]{ width:110px; padding:8px; border-radius:8px; border:1px solid var(--border); text-align:right; }
+
+/* small action row */
+.actions-row{ display:flex; gap:8px; flex-wrap:wrap; margin-top:10px; }
+
+/* table */
+.result-table{ width:100%; border-collapse:collapse; margin-top:12px; }
+.result-table th, .result-table td{ padding:10px; border-bottom:1px solid var(--border); text-align:left; }
+.result-table thead th{ background: #f7f3f3; color:var(--text); font-weight:600; }
+.result-table tfoot th{ text-align:right; }
+
+/* stats grid */
+.stats-grid{ display:grid; grid-template-columns:repeat(auto-fit,minmax(160px,1fr)); gap:10px; margin-top:8px; }
+.stat{ background:transparent; padding:10px; border-radius:10px; border:1px solid var(--border); text-align:center; }
+
+/* ===== buttons styles & layout behavior ===== */
+.actions-vertical{ display:flex; flex-direction:column; gap:12px; margin-top:14px; }
+.action-row-left{ display:flex; gap:10px; align-items:center; justify-content:flex-start; flex-wrap:wrap; }
+
+/* primary and danger */
+button.primary, .icon-btn.primary { background:var(--wine); color:var(--accent-contrast); border:none; padding:8px 12px; border-radius:10px; }
+button.primary.main-action{ width:220px; align-self:center; font-weight:600; }
+
+.icon-btn.light{ background:transparent; border:1px solid var(--border); padding:8px 10px; border-radius:8px; color:var(--text); }
+.icon-btn.danger, .icon-btn.danger:hover { color: #fff; background: #c03b3b; }
+
+/* Edit mode highlight: applied when body has class 'editing' */
+body.editing .campo input,
+body.editing .instr-container textarea,
+body.editing .ingredient-row input {
+  background: #fff5f5;
+  border-color: rgba(139,30,63,0.85);
+  box-shadow: 0 6px 18px rgba(139,30,63,0.06);
+  transition: all 0.3s ease-in-out;
 }
 
-/* Footer */
-.app-footer {
-  text-align: center;
-  padding: 15px 0;
-  font-size: 0.9rem;
-  color: var(--color-text);
-  border-top: 1px solid var(--color-border);
+/* Buttons highlight in edit mode */
+body.editing .icon-btn, body.editing .btn, body.editing button.primary {
+  transition: all 0.3s ease-in-out;
+}
+body.editing .icon-btn.primary { box-shadow: 0 6px 20px rgba(139,30,63,0.12); transform: translateY(-2px); }
+
+/* small responsive rules for buttons layout:
+   - Desktop: Edit + Cancel left, Save centered below (main-action)
+   - Mobile: stacked centered
+*/
+@media (max-width: 767px){
+  .action-row-left{ justify-content:center; }
+  .action-row-left .icon-btn{ width:100%; justify-content:center; }
+  .actions-vertical .main-action { width:100%; align-self:center; }
 }
 
-.app-footer strong {
-  color: var(--color-accent);
+/* hover lift only on devices with hover support */
+@media (hover: hover) {
+  .icon-btn:hover, .btn:hover, button.primary:hover { transform: translateY(-4px); box-shadow: 0 10px 24px rgba(0,0,0,0.08); }
 }
 
-/* =======================
-   Responsividad
-   ======================= */
-@media (max-width: 600px) {
-  .main-content {
-    padding: 10px;
-  }
-  .app-header h1 {
-    font-size: 1rem;
-  }
-}
+/* minor helpers */
+.info-small { display:flex; flex-direction:column; justify-content:center; padding:6px 8px; min-width:140px; background:transparent; border-radius:8px; border:1px solid var(--border); }
+.small-links a { display:inline-flex; gap:8px; align-items:center; padding:8px 10px; border-radius:8px; }
+
+.label-muted { color:var(--muted); font-size:0.9rem; }
+
+/* footer */
+.app-footer { text-align:center; padding:14px 0; color:var(--muted); font-size:0.9rem; }
+
+/* ensure select and inputs are legible in dark theme */
+body.dark select, body.dark input, body.dark textarea { background: transparent; color: var(--text); border-color: var(--border); }
