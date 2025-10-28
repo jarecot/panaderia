@@ -145,25 +145,6 @@ body.editing .icon-btn, body.editing .btn, body.editing button.primary {
 }
 body.editing .icon-btn.primary { box-shadow: 0 6px 20px rgba(139,30,63,0.12); transform: translateY(-2px); }
 
-/* --- nuevo estilo para input del nombre --- */
-#nombreRecetaContainer input {
-  width: 100%;
-  padding: 10px 12px;
-  border-radius: 10px;
-  border: 1px solid var(--border);
-  background: transparent;
-  font-size: 1rem;
-  font-weight: 500;
-  color: var(--text);
-  transition: all 0.3s ease;
-}
-#nombreRecetaContainer input::placeholder {
-  color: var(--muted);
-  opacity: 0.8;
-}
-
-/* resto igual (sin cambios) */
-
 /* small responsive rules for buttons layout:
    - Desktop: Edit + Cancel left, Save centered below (main-action)
    - Mobile: stacked centered
@@ -190,7 +171,3 @@ body.editing .icon-btn.primary { box-shadow: 0 6px 20px rgba(139,30,63,0.12); tr
 
 /* ensure select and inputs are legible in dark theme */
 body.dark select, body.dark input, body.dark textarea { background: transparent; color: var(--text); border-color: var(--border); }
-
-
-
-
