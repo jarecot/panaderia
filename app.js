@@ -37,6 +37,7 @@ const rendimientoPreview = $("rendimientoPreview");
 const btnAgregarIngrediente = $("btnAgregarIngrediente");
 const btnGuardar = $("btnGuardar");
 const btnEliminar = $("btnEliminar");
+const btnLimpiarReceta = document.getElementById("btnLimpiarReceta");
 const btnEditarRecetaView = $("btnEditarRecetaView");
 const btnCancelarEdicionView = $("btnCancelarEdicionView");
 const btnEditar = $("btnEditar");
@@ -476,6 +477,12 @@ function limpiarFormulario() {
   renderIngredientes();
   calcularPesos();
 }
+
+btnLimpiarReceta.addEventListener("click", () => {
+  if (confirm("¿Seguro que deseas limpiar la receta actual? Se borrarán los datos no guardados.")) {
+    limpiarFormulario();
+  }
+});
 
 // ---------- LOGO LOADER ----------
 async function loadLogo() {
