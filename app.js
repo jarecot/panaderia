@@ -79,7 +79,7 @@ function renderNombre() {
     const input = document.createElement("input");
     input.id = "nombreReceta";
     input.type = "text";
-    input.placeholder = "Nombre de receta";
+    input.placeholder = "Nombre de receta nueva";
     input.value = nombreRecetaContainer.dataset.value || "";
     input.addEventListener("input", e => nombreRecetaContainer.dataset.value = e.target.value);
     input.className = "nombre-input";
