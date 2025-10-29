@@ -338,7 +338,7 @@ function actualizarStats() {
 // Cargar lista de recetas
 async function cargarRecetas() {
   if (!recetaSelect) return;
-  recetaSelect.innerHTML = `<option value="">Selecciona o agrega una receta</option>`;
+  recetaSelect.innerHTML = `<option value="">🥐🥖🍞</option>`;
   try {
     const q = query(collection(db, COLL), orderBy("nombre", "asc"));
     const snap = await getDocs(q);
