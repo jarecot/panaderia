@@ -50,6 +50,19 @@ const btnExportCSV = $("btnExportCSV");
 const btnCompartir = $("btnCompartir");
 const btnToggleTheme = $("btnToggleTheme");
 
+// --- Agregar nueva receta ---
+const btnAgregarReceta = document.getElementById("btnAgregarReceta");
+
+btnAgregarReceta.addEventListener("click", () => {
+  if (confirm("¿Deseas crear una nueva receta? Se perderán los cambios no guardados.")) {
+    limpiarFormulario(); // ya existente en tu código
+    recetaIdActual = null; // asegura que se cree como nueva
+    isEditMode = true;
+    renderAll();
+    alert("🆕 Modo nueva receta activado");
+  }
+});
+
 const ingredientesDiv = $("ingredientes");
 const tablaIngredientes = $("tablaIngredientes");
 const sumGramsEl = $("sumGrams");
