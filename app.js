@@ -522,7 +522,7 @@ function limpiarSoloCampos() {
 
 btnLimpiarReceta.addEventListener("click", () => {
   if (confirm("¿Seguro que deseas limpiar la receta actual? Se borrarán los datos no guardados.")) {
-    limpiarSoloCampos();
+    limpiarFormulario();
   }
 });
 
