@@ -354,6 +354,23 @@ async function cargarRecetas() {
   }
 }
 
+recetaSelect.addEventListener("change", (e) => {
+  const selectedId = e.target.value;
+  if (selectedId) {
+    cargarReceta(selectedId);
+  } else {
+    limpiarFormulario();
+  }
+});
+
+// Permite recargar si se elige la misma receta nuevamente
+recetaSelect.addEventListener("click", (e) => {
+  const selectedId = e.target.value;
+  if (selectedId) {
+    cargarReceta(selectedId);
+  }
+});
+
 // Cargar receta seleccionada
 async function cargarReceta(id) {
   if (!id) { limpiarFormulario(); return; }
@@ -491,9 +508,21 @@ function limpiarFormulario() {
   calcularPesos();
 }
 
+function limpiarSoloCampos() {
+  console.log("Limpiando campos sin alterar la receta actual");
+  nombreRecetaContainer.dataset.value = "";
+  pesoTotalInput.value = 1000;
+  pesoMultiplierInput.value = 1;
+  instrAmasadoContainer.dataset.value = "";
+  instrHorneadoContainer.dataset.value = "";
+  ingredientes = [];
+  isEditMode = true; // para permitir edición inmediata
+  renderAll();
+}
+
 btnLimpiarReceta.addEventListener("click", () => {
   if (confirm("¿Seguro que deseas limpiar la receta actual? Se borrarán los datos no guardados.")) {
-    limpiarFormulario();
+    limpiarSoloCampos();
   }
 });
 
