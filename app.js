@@ -632,10 +632,62 @@ function shareByWhatsApp() {
   const link = makeShareLink(recetaIdActual);
   window.open(`https://wa.me/?text=${encodeURIComponent("Te comparto esta receta: " + link)}`, "_blank");
 }
+// ---------- SHARING (REEMPLAZO SEGURO) ----------
 function copyShareLink() {
-  if (!recetaIdActual) return alert("Selecciona una receta primero");
+  if (!recetaIdActual) {
+    alert("Selecciona una receta primero");
+    return;
+  }
   const link = makeShareLink(recetaIdActual);
-  navigator.clipboard?.writeText(link).then(() => alert("Enlace copiado al portapapeles"), () => prompt("Copia el enlace:", link));
+
+  // Intento moderno: navigator.clipboard (solo en contexto seguro - https)
+  if (navigator.clipboard && window.isSecureContext) {
+    navigator.clipboard.writeText(link)
+      .then(() => {
+        // Mensaje no bloqueante
+        try { showToast && showToast("Enlace copiado ✅"); } catch(e) { /* noop */ }
+        alert("✅ Enlace copiado al portapapeles");
+      })
+      .catch((err) => {
+        console.warn("navigator.clipboard fallo:", err);
+        fallbackCopyTextToClipboard(link);
+      });
+  } else {
+    // Fallback robusto (execCommand)
+    fallbackCopyTextToClipboard(link);
+  }
+}
+
+function fallbackCopyTextToClipboard(text) {
+  // Crea textarea temporal
+  const textArea = document.createElement("textarea");
+  textArea.value = text;
+
+  // Evitar scroll y estilos visibles
+  textArea.style.position = "fixed";
+  textArea.style.top = "-9999px";
+  textArea.style.left = "-9999px";
+  textArea.setAttribute("readonly", "");
+
+  document.body.appendChild(textArea);
+  textArea.select();
+
+  try {
+    const ok = document.execCommand('copy');
+    if (ok) {
+      try { showToast && showToast("Enlace copiado ✅"); } catch(e){/*noop*/ }
+      alert("✅ Enlace copiado al portapapeles");
+    } else {
+      // Si execCommand falla, ofrecer prompt para copia manual
+      prompt("Copia este enlace:", text);
+    }
+  } catch (err) {
+    console.warn("fallback copy failed:", err);
+    prompt("Copia este enlace:", text);
+  }
+
+  // limpiar
+  document.body.removeChild(textArea);
 }
 
 // ---------- THEME ----------
@@ -678,7 +730,7 @@ function wireEvents() {
   btnPreviewPDF?.addEventListener("click", () => generatePDF({ preview: true }));
   btnExportCSV?.addEventListener("click", exportarCSV);
   btnCompartir?.addEventListener("click", () => {
-    const c = confirm("Compartir por WhatsApp? OK=WhatsApp, Cancel=Copiar enlace");
+    const c = confirm("Compartir por WhatsApp? OK=WhatsApp, Cancelar=Copiar enlace");
     if (c) shareByWhatsApp(); else copyShareLink();
   });
 
