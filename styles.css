@@ -130,14 +130,19 @@ button.primary.main-action{ width:220px; align-self:center; font-weight:600; }
 .icon-btn.danger, .icon-btn.danger:hover { color: #fff; background: #c03b3b; }
 
 /* Edit mode highlight: applied when body has class 'editing' */
+/* --- Corrige visibilidad del texto en modo edición --- */
 body.editing .campo input,
 body.editing .instr-container textarea,
-body.editing .ingredient-row input {
+body.editing .ingredient-row input,
+body.editing .nombre-container input {
   background: #fff5f5;
   border-color: rgba(139,30,63,0.85);
   box-shadow: 0 6px 18px rgba(139,30,63,0.06);
+  color: #111 !important; /* texto siempre visible en fondo claro */
+  caret-color: var(--wine);
   transition: all 0.3s ease-in-out;
 }
+
 
 /* Buttons highlight in edit mode */
 body.editing .icon-btn, body.editing .btn, body.editing button.primary {
