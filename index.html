@@ -18,6 +18,25 @@
   <!-- jsPDF + autoTable (needed for PDF export) -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.28/jspdf.plugin.autotable.min.js"></script>
+
+  <script>
+  // Verifica si el usuario tiene un tema guardado
+  const savedTheme = localStorage.getItem("fermentos_theme");
+  if (savedTheme) {
+    document.body.classList.toggle("dark", savedTheme === "dark");
+  } else {
+    // Si no hay tema guardado, aplica modo claro por defecto
+    document.body.classList.remove("dark");
+  }
+
+  // Detecta si el sistema está en oscuro y sincroniza automáticamente
+  window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', e => {
+    const prefersDark = e.matches;
+    if (!localStorage.getItem("fermentos_theme")) {
+      document.body.classList.toggle("dark", prefersDark);
+    }
+  });
+</script>
 </head>
 
 <body>
