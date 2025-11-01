@@ -215,3 +215,8 @@ body.dark select, body.dark input, body.dark textarea { background: transparent;
   color: var(--text-color-strong);
   text-align: center;
 }
+/* Mejorar visualización de instrucciones en modo edición (interpreta saltos de línea como <br>) */
+
+.instr-container p {
+  white-space: pre-line;
+}
