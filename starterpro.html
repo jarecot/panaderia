@@ -1,244 +1,436 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-<meta charset="UTF-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<title>Calculadora FermentaPro – Starter Avanzada</title>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Calculadora FermentaPro – Starter y Recetas Avanzadas</title>
+    <!-- Tailwind CSS CDN para un diseño moderno y responsivo -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        /* Definición de colores base en CSS para mantener la estética panadera */
+        :root {
+            --color-base: #8b5e3c; /* Tostado / Marrón oscuro */
+            --color-acento: #d6ad60; /* Amarillo trigo / Dorado */
+            --color-fondo: #fffaf2; /* Fondo Crema suave */
+            --color-texto: #3a2e1f; /* Marrón oscuro para texto */
+        }
+        
+        /* Configuración global de la fuente y fondo */
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: var(--color-fondo);
+            color: var(--color-texto);
+        }
 
-<style>
-  :root {
-    --color-base: #8b5e3c;
-    --color-acento: #d6ad60;
-    --color-fondo: #fffaf2;
-    --color-texto: #3a2e1f;
-  }
+        /* Estilos personalizados de Tailwind */
+        .input-style {
+            @apply w-full p-3 mt-1 border border-gray-300 rounded-lg text-lg focus:ring-2 focus:ring-[color:var(--color-base)] focus:border-[color:var(--color-base)] transition duration-150;
+        }
+        .btn-base {
+            @apply bg-[color:var(--color-base)] text-white font-semibold py-3 px-6 rounded-xl transition duration-300 w-full hover:bg-[color:var(--color-acento)] hover:text-[color:var(--color-texto)] shadow-md hover:shadow-lg;
+        }
+        .btn-secondary {
+            @apply bg-transparent text-[color:var(--color-base)] border-2 border-[color:var(--color-base)] hover:bg-[color:var(--color-base)] hover:text-white mt-4;
+        }
+        .section-header {
+            @apply text-xl font-bold text-[color:var(--color-base)] mt-8 mb-4 border-b border-gray-200 pb-2 flex justify-between items-center cursor-pointer;
+        }
+        .result-box {
+            @apply bg-[color:var(--color-acento)] text-[color:var(--color-texto)] p-5 rounded-xl mt-6 text-left shadow-lg;
+        }
 
-  body {
-    font-family: 'Poppins', sans-serif;
-    background-color: var(--color-fondo);
-    color: var(--color-texto);
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    min-height: 100vh;
-    margin: 0;
-  }
+        /* Estilos para Tooltip */
+        .tooltip-container {
+            @apply relative inline-block w-full;
+        }
+        .tooltip-icon {
+            @apply ml-1 text-gray-500 cursor-help hover:text-[color:var(--color-base)];
+        }
+        .tooltip-text {
+            @apply absolute z-10 hidden bg-gray-800 text-white text-xs rounded py-1 px-2 pointer-events-none w-max max-w-xs shadow-lg left-1/2 transform -translate-x-1/2 top-full mt-2;
+        }
+        .tooltip-container:hover .tooltip-text {
+            display: block;
+        }
 
-  .container {
-    background: #ffffff;
-    border-radius: 20px;
-    box-shadow: 0 6px 16px rgba(0,0,0,0.1);
-    padding: 35px 30px;
-    max-width: 470px;
-    width: 90%;
-    text-align: center;
-  }
-
-  h1 {
-    font-size: 1.5rem;
-    color: var(--color-base);
-    margin-bottom: 10px;
-  }
-
-  p {
-    font-size: 0.9rem;
-    color: #555;
-    margin-bottom: 25px;
-  }
-
-  label {
-    display: block;
-    margin-top: 12px;
-    font-weight: 600;
-    text-align: left;
-  }
-
-  input, select {
-    width: 100%;
-    padding: 10px;
-    margin-top: 4px;
-    border: 1px solid #ccc;
-    border-radius: 8px;
-    font-size: 1rem;
-  }
-
-  button {
-    background-color: var(--color-base);
-    color: white;
-    border: none;
-    border-radius: 10px;
-    padding: 12px 20px;
-    margin-top: 20px;
-    font-size: 1rem;
-    cursor: pointer;
-    transition: background 0.3s;
-    width: 100%;
-  }
-
-  button:hover {
-    background-color: var(--color-acento);
-    color: var(--color-texto);
-  }
-
-  .resultado {
-    background: var(--color-acento);
-    color: var(--color-texto);
-    margin-top: 25px;
-    padding: 15px;
-    border-radius: 10px;
-    font-weight: 600;
-    font-size: 1.05rem;
-    display: none;
-    text-align: left;
-  }
-
-  .detalle {
-    font-size: 0.9rem;
-    color: #333;
-    margin-top: 5px;
-  }
-
-  footer {
-    margin-top: 25px;
-    font-size: 0.8rem;
-    color: #777;
-    text-align: center;
-  }
-
-  /* Botón de volver */
-  .btn-volver {
-    background-color: transparent;
-    color: var(--color-base);
-    border: 2px solid var(--color-base);
-    border-radius: 10px;
-    padding: 10px 15px;
-    font-size: 0.95rem;
-    cursor: pointer;
-    margin-top: 25px;
-    transition: all 0.3s;
-    width: 100%;
-  }
-
-  .btn-volver:hover {
-    background-color: var(--color-base);
-    color: white;
-  }
-</style>
+        /* Clase para el contenedor de secciones colapsables */
+        .collapsible-body {
+            max-height: 1000px; /* Suficientemente grande para el contenido */
+            transition: max-height 0.5s ease-in-out;
+        }
+        .collapsible-body.collapsed {
+            max-height: 0;
+            overflow: hidden;
+        }
+    </style>
 </head>
 
-<body>
-  <div class="container">
-    <h1>Calculadora de Starter Avanzada</h1>
-    <p>Calcula proporciones, masa madre necesaria e hidratación final de tu prefermento.</p>
+<body class="flex justify-center items-start min-h-screen py-8">
+    <div id="app-container" class="bg-white rounded-3xl shadow-2xl p-6 md:p-8 max-w-xl w-11/12 text-center">
+        
+        <!-- HEADER -->
+        <h1 class="text-3xl font-extrabold text-[color:var(--color-base)] mb-2">FermentaPro</h1>
+        <p class="text-gray-500 mb-6 text-base">Calculadora de Starter y Ajuste de Recetas.</p>
 
-    <label for="tipoPrefermento">Selecciona tipo de prefermento:</label>
-    <select id="tipoPrefermento" onchange="aplicarPreset()">
-      <option value="personalizado">🔧 Personalizado</option>
-      <option value="levain">Levain (1:1:1 – 100%)</option>
-      <option value="poolish">Poolish (1:1:1 – 100%)</option>
-      <option value="biga">Biga (1:0.45:0.45 – 45%)</option>
-      <option value="masaMadreSolida">Masa madre sólida (1:0.5:0.5 – 50%)</option>
-      <option value="esponja">Esponja (1:0.6:0.6 – 60%)</option>
-      <option value="levaduraComercial">Prefermento levadura (1:0.7:0.7 – 70%)</option>
-    </select>
+        <!-- Mensaje de Error (Reemplaza el alert()) -->
+        <div id="error-message" class="hidden bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded-xl mb-4 text-sm font-medium" role="alert">
+            <!-- El mensaje de error se inyecta aquí -->
+        </div>
 
-    <label for="starterTotal">Cantidad total de starter necesaria (g)</label>
-    <input type="number" id="starterTotal" placeholder="Ej: 100" step="1">
+        <!-- SECCIÓN 1: CÁLCULO DE STARTER -->
+        <h2 class="section-header" onclick="toggleSection('starter-section-body', 'toggle-icon-starter')">
+            1. Calcular Proporción de Starter
+            <span id="toggle-icon-starter" class="transform transition-transform rotate-0">▼</span>
+        </h2>
+        
+        <div id="starter-section-body" class="collapsible-body">
+            <label for="tipoPrefermento" class="block text-left font-semibold mt-4">Tipo de Prefermento:</label>
+            <select id="tipoPrefermento" onchange="aplicarPreset()" class="input-style">
+                <option value="personalizado">🔧 Personalizado</option>
+                <option value="levain">Levain (1:1:1 – 100%)</option>
+                <option value="poolish">Poolish (1:1:1 – 100%)</option>
+                <option value="biga">Biga (1:0.45:0.45 – 45%)</option>
+                <option value="masaMadreSolida">Masa madre sólida (1:0.5:0.5 – 50%)</option>
+                <option value="esponja">Esponja (1:0.6:0.6 – 60%)</option>
+            </select>
+        
+            <label for="starterTotal" class="block text-left font-semibold mt-4">Cantidad total de starter necesaria (g)</label>
+            <input type="number" id="starterTotal" placeholder="Ej: 100" step="1" class="input-style">
+        
+            <label for="proporcion" class="block text-left font-semibold mt-4">Proporción (Harina:Agua:Starter Madre):</label>
+            <input type="text" id="proporcion" placeholder="Ej: 1:2:2" class="input-style">
+        
+            <label for="hidratacionMadre" class="block text-left font-semibold mt-4">Hidratación del starter madre (%):</label>
+            <input type="number" id="hidratacionMadre" step="1" placeholder="Ej: 100" class="input-style">
+        
+            <button onclick="calcularStarter()" class="btn-base mt-6">CALCULAR STARTER</button>
+        
+            <div id="resultado-starter" class="result-box hidden"></div>
+        </div>
 
-    <label for="proporcion">Proporción (harina:agua:starter madre)</label>
-    <input type="text" id="proporcion" placeholder="Ej: 1:2:2">
+        <!-- SECCIÓN 2: RECALCULADORA DE RECETAS -->
+        <h2 class="section-header" onclick="toggleSection('recalce-section-body', 'toggle-icon-recalce')">
+            2. Recalcular Receta y Ajuste de Ingredientes
+            <span id="toggle-icon-recalce" class="transform transition-transform rotate-180">▼</span>
+        </h2>
 
-    <label for="hidratacionMadre">Hidratación del starter madre (%)</label>
-    <input type="number" id="hidratacionMadre" step="1" placeholder="Ej: 100">
+        <div id="recalce-section-body" class="collapsible-body">
+            <!-- INPUTS RECETA ORIGINAL -->
+            <p class="text-sm text-gray-600 mb-3">Paso 1: Define tu receta original para calcular su hidratación real.</p>
+            <div class="grid grid-cols-2 gap-4">
+                <div class="tooltip-container">
+                    <label for="recetaHarina" class="block text-left text-sm font-medium">Harina principal (g) <span class="tooltip-icon">ⓘ<span class="tooltip-text">Harina que se añade a la masa principal. NO incluye la harina del starter. (Ej: 1000g)</span></span></label>
+                    <input type="number" id="recetaHarina" placeholder="1000" class="input-style p-2 text-base">
+                </div>
+                <div class="tooltip-container">
+                    <label for="recetaLiquido" class="block text-left text-sm font-medium">Líquido principal (g) <span class="tooltip-icon">ⓘ<span class="tooltip-text">Agua, leche u otro líquido que se añade a la masa principal. NO incluye el líquido del starter. (Ej: 600g)</span></span></label>
+                    <input type="number" id="recetaLiquido" placeholder="600" class="input-style p-2 text-base">
+                </div>
+            </div>
 
-    <button onclick="calcularStarter()">Calcular</button>
+            <div class="grid grid-cols-2 gap-4 mt-4">
+                <div class="tooltip-container">
+                    <label for="starterOriginal" class="block text-left text-sm font-medium">Starter Original (g) <span class="tooltip-icon">ⓘ<span class="tooltip-text">La cantidad de starter que usas en la receta original. (Ej: 200g)</span></span></label>
+                    <input type="number" id="starterOriginal" placeholder="200" class="input-style p-2 text-base">
+                </div>
+                <div class="tooltip-container">
+                    <label for="hidratacionOriginal" class="block text-left text-sm font-medium">Hidratación Original (%) <span class="tooltip-icon">ⓘ<span class="tooltip-text">La hidratación del starter que usas en la receta original. (Ej: 100% para 1:1)</span></span></label>
+                    <input type="number" id="hidratacionOriginal" placeholder="100" class="input-style p-2 text-base">
+                </div>
+            </div>
 
-    <div class="resultado" id="resultado"></div>
+            <!-- INPUTS STARTER OBJETIVO -->
+            <p class="text-sm text-gray-600 mt-6 mb-3 border-t pt-4">Paso 2: Define el nuevo starter que usarás en tu receta.</p>
 
-    <button class="btn-volver" onclick="window.location.href='index.html'">⬅ Volver al inicio</button>
+            <div class="grid grid-cols-2 gap-4">
+                <div class="tooltip-container">
+                    <label for="starterObjetivo" class="block text-left text-sm font-medium">Starter Objetivo (g) <span class="tooltip-icon">ⓘ<span class="tooltip-text">La cantidad del nuevo starter que deseas usar. (Ej: 100g)</span></span></label>
+                    <input type="number" id="starterObjetivo" placeholder="100" class="input-style p-2 text-base">
+                </div>
+                <div class="tooltip-container">
+                    <label for="hidratacionObjetivo" class="block text-left text-sm font-medium">Hidratación Objetivo (%) <span class="tooltip-icon">ⓘ<span class="tooltip-text">La hidratación del nuevo starter. (Ej: 50% para una masa madre sólida)</span></span></label>
+                    <input type="number" id="hidratacionObjetivo" placeholder="50" class="input-style p-2 text-base">
+                </div>
+            </div>
+            
+            <!-- Botón y Resultado -->
+            <button onclick="recalcularReceta()" class="btn-base mt-6">RECALCULAR Y AJUSTAR</button>
 
-    <footer>📍 FermentaPro – Ciencia, técnica y estrategia para panaderos y fermentistas.</footer>
-  </div>
+            <div id="resultado-recalce" class="result-box hidden"></div>
 
-  <script>
-    function aplicarPreset() {
-      const tipo = document.getElementById("tipoPrefermento").value;
-      const proporcion = document.getElementById("proporcion");
-      const hidratacionMadre = document.getElementById("hidratacionMadre");
+        </div>
 
-      switch (tipo) {
-        case "levain":
-        case "poolish":
-          proporcion.value = "1:1:1";
-          hidratacionMadre.value = 100;
-          break;
-        case "biga":
-          proporcion.value = "1:0.45:0.45";
-          hidratacionMadre.value = 45;
-          break;
-        case "masaMadreSolida":
-          proporcion.value = "1:0.5:0.5";
-          hidratacionMadre.value = 50;
-          break;
-        case "esponja":
-          proporcion.value = "1:0.6:0.6";
-          hidratacionMadre.value = 60;
-          break;
-        case "levaduraComercial":
-          proporcion.value = "1:0.7:0.7";
-          hidratacionMadre.value = 70;
-          break;
-        default:
-          proporcion.value = "";
-          hidratacionMadre.value = "";
-      }
-    }
+        <!-- Botón de Limpiar / Footer -->
+        <button onclick="clearForms()" class="btn-base btn-secondary mt-8 text-sm md:text-base">
+            🗑️ Limpiar todos los campos
+        </button>
+        
+        <footer class="mt-8 text-xs text-gray-400">
+            &copy; 2025 FermentaPro
+        </footer>
+    </div>
 
-    function calcularStarter() {
-      const total = parseFloat(document.getElementById("starterTotal").value);
-      const proporcion = document.getElementById("proporcion").value.trim();
-      const hidratacionMadre = parseFloat(document.getElementById("hidratacionMadre").value);
-      const resultadoDiv = document.getElementById("resultado");
+    <script>
+        // Función para mostrar errores en el UI
+        function mostrarError(mensaje) {
+            const errorDiv = document.getElementById("error-message");
+            errorDiv.textContent = '⚠️ Error: ' + mensaje;
+            errorDiv.classList.remove("hidden");
+            errorDiv.scrollIntoView({ behavior: 'smooth' }); // Desplazar al error
+            setTimeout(() => errorDiv.classList.add("hidden"), 7000); 
+        }
+        
+        // Función para limpiar todos los formularios
+        function clearForms() {
+            document.getElementById("starterTotal").value = '';
+            document.getElementById("proporcion").value = '';
+            document.getElementById("hidratacionMadre").value = '';
+            document.getElementById("tipoPrefermento").value = 'personalizado';
+            document.getElementById("recetaHarina").value = '';
+            document.getElementById("recetaLiquido").value = '';
+            document.getElementById("starterOriginal").value = '';
+            document.getElementById("hidratacionOriginal").value = '';
+            document.getElementById("starterObjetivo").value = '';
+            document.getElementById("hidratacionObjetivo").value = '';
 
-      if (!total || !proporcion || isNaN(hidratacionMadre)) {
-        alert("Por favor, completa todos los campos requeridos.");
-        return;
-      }
+            document.getElementById("resultado-starter").classList.add("hidden");
+            document.getElementById("resultado-recalce").classList.add("hidden");
+            document.getElementById("error-message").classList.add("hidden");
+        }
 
-      const partes = proporcion.split(":").map(parseFloat);
-      if (partes.length !== 3 || partes.some(isNaN)) {
-        alert("Formato de proporción inválido. Usa el formato 1:2:2.");
-        return;
-      }
+        // Función para alternar la visibilidad de las secciones
+        function toggleSection(bodyId, iconId) {
+            const body = document.getElementById(bodyId);
+            const icon = document.getElementById(iconId);
+            
+            body.classList.toggle('collapsed');
 
-      const totalPartes = partes.reduce((a, b) => a + b, 0);
-      const factor = total / totalPartes;
+            if (body.classList.contains('collapsed')) {
+                icon.classList.remove('rotate-180');
+                icon.classList.add('rotate-0');
+            } else {
+                icon.classList.remove('rotate-0');
+                icon.classList.add('rotate-180');
+            }
+        }
 
-      const starterMadre = partes[0] * factor;
-      const harina = partes[1] * factor;
-      const agua = partes[2] * factor;
+        // Inicializar la rotación de los iconos al cargar
+        document.addEventListener('DOMContentLoaded', () => {
+             // Dejar la sección 2 abierta por defecto
+             document.getElementById('starter-section-body').classList.add('collapsed');
+             document.getElementById('toggle-icon-starter').classList.add('rotate-0');
 
-      // Calcular agua y harina provenientes del starter madre
-      const aguaMadre = starterMadre * (hidratacionMadre / (100 + hidratacionMadre));
-      const harinaMadre = starterMadre - aguaMadre;
+             document.getElementById('recalce-section-body').classList.remove('collapsed');
+             document.getElementById('toggle-icon-recalce').classList.add('rotate-180');
+        });
 
-      const harinaTotal = harina + harinaMadre;
-      const aguaTotal = agua + aguaMadre;
-      const hidratacionFinal = (aguaTotal / harinaTotal) * 100;
+        // ----------------------------------------------------
+        // SECCIÓN 1: CÁLCULO DE STARTER
+        // ----------------------------------------------------
 
-      resultadoDiv.style.display = "block";
-      resultadoDiv.innerHTML = `
-        <strong>Resultado del cálculo:</strong><br><br>
-        🌾 Harina nueva: <strong>${harina.toFixed(1)} g</strong><br>
-        💧 Agua nueva: <strong>${agua.toFixed(1)} g</strong><br>
-        🧫 Starter madre: <strong>${starterMadre.toFixed(1)} g</strong><br><br>
-        <div class="detalle">
-          Hidratación final del starter resultante: <strong>${hidratacionFinal.toFixed(1)}%</strong><br>
-          (Incluye harina y agua aportadas por la madre)
-        </div><br>
-        <small>Proporción usada: ${proporcion} – Total ${total} g</small>
-      `;
-    }
-  </script>
+        function aplicarPreset() {
+            const tipo = document.getElementById("tipoPrefermento").value;
+            const proporcion = document.getElementById("proporcion");
+            const hidratacionMadre = document.getElementById("hidratacionMadre");
+
+            switch (tipo) {
+                case "levain":
+                case "poolish":
+                    proporcion.value = "1:1:1";
+                    hidratacionMadre.value = 100;
+                    break;
+                case "biga":
+                    proporcion.value = "1:0.45:0.45";
+                    hidratacionMadre.value = 45;
+                    break;
+                case "masaMadreSolida":
+                    proporcion.value = "1:0.5:0.5";
+                    hidratacionMadre.value = 50;
+                    break;
+                case "esponja":
+                    proporcion.value = "1:0.6:0.6";
+                    hidratacionMadre.value = 60;
+                    break;
+                default:
+                    proporcion.value = "";
+                    hidratacionMadre.value = "";
+            }
+        }
+
+        function calcularStarter() {
+            const total = parseFloat(document.getElementById("starterTotal").value);
+            const proporcionStr = document.getElementById("proporcion").value.trim();
+            const hidratacionMadre = parseFloat(document.getElementById("hidratacionMadre").value);
+            const resultadoDiv = document.getElementById("resultado-starter");
+
+            resultadoDiv.classList.add("hidden");
+
+            if (isNaN(total) || !proporcionStr || isNaN(hidratacionMadre) || total <= 0 || hidratacionMadre < 0) {
+                mostrarError("Asegúrate de que la cantidad total de starter y la hidratación sean números positivos, y que la proporción esté completa.");
+                return;
+            }
+
+            const partes = proporcionStr.split(":").map(parseFloat);
+            if (partes.length !== 3 || partes.some(isNaN)) {
+                mostrarError("Formato de proporción inválido. Usa el formato Harina:Agua:StarterMadre (Ej: 1:2:2).");
+                return;
+            }
+
+            const [pHarina, pAgua, pStarterMadre] = partes;
+            
+            if (pHarina <= 0 || pAgua <= 0 || pStarterMadre < 0) {
+                 mostrarError("Las proporciones de Harina y Agua deben ser mayores a 0.");
+                 return;
+            }
+
+            const totalPartes = pHarina + pAgua + pStarterMadre;
+            const factor = total / totalPartes;
+
+            // Ingredientes nuevos para crear el starter final
+            const harinaNueva = pHarina * factor;
+            const aguaNueva = pAgua * factor;
+            const starterMadre = pStarterMadre * factor;
+
+            // Calcular agua y harina provenientes del starter madre
+            const ratio = 1 + (hidratacionMadre / 100);
+            const harinaMadre = starterMadre / ratio;
+            const aguaMadre = starterMadre - harinaMadre;
+
+            // Totales efectivos en el starter resultante
+            const harinaTotalStarter = harinaNueva + harinaMadre;
+            const aguaTotalStarter = aguaNueva + aguaMadre;
+            
+            const hidratacionFinal = harinaTotalStarter > 0 ? (aguaTotalStarter / harinaTotalStarter) * 100 : 0;
+
+            resultadoDiv.classList.remove("hidden");
+            resultadoDiv.innerHTML = `
+                <p class="font-bold text-lg mb-2 text-[color:var(--color-base)]">✅ Ingredientes para tu Nuevo Lote de Starter</p>
+                <ul class="list-disc list-inside text-gray-800 space-y-1">
+                    <li>🌾 Harina nueva: <strong>${harinaNueva.toFixed(1)} g</strong></li>
+                    <li>💧 Agua nueva: <strong>${aguaNueva.toFixed(1)} g</strong></li>
+                    <li>🧫 Starter madre: <strong>${starterMadre.toFixed(1)} g</strong></li>
+                </ul>
+                <div class="mt-3 pt-2 border-t border-gray-300">
+                    <p class="text-sm font-semibold">Hidratación final de este nuevo lote:</p>
+                    <p class="text-xl font-extrabold text-[color:var(--color-base)]">${hidratacionFinal.toFixed(1)} %</p>
+                </div>
+            `;
+        }
+
+        // ----------------------------------------------------
+        // SECCIÓN 2: RECALCULADORA DE RECETAS (LÓGICA CORREGIDA)
+        // ----------------------------------------------------
+
+        // Función para calcular Harina y Líquido aportados por el starter
+        function calcularComponentesStarter(cantidadStarter, hidratacion) {
+            // F = S / (1 + H/100)
+            if (hidratacion < 0) return { flour: 0, liquid: 0 };
+            const ratio = 1 + (hidratacion / 100);
+            const flour = cantidadStarter / ratio;
+            const liquid = cantidadStarter - flour;
+            return { flour, liquid };
+        }
+
+        function recalcularReceta() {
+            // Receta Original
+            const RF_O = parseFloat(document.getElementById("recetaHarina").value);
+            const RL_O = parseFloat(document.getElementById("recetaLiquido").value);
+            const S_O = parseFloat(document.getElementById("starterOriginal").value);
+            const H_S_O = parseFloat(document.getElementById("hidratacionOriginal").value);
+
+            // Starter Objetivo (Nuevo)
+            const S_T = parseFloat(document.getElementById("starterObjetivo").value);
+            const H_S_T = parseFloat(document.getElementById("hidratacionObjetivo").value);
+
+            const resultadoDiv = document.getElementById("resultado-recalce");
+            resultadoDiv.classList.add("hidden");
+
+            // Validación robusta
+            const inputs = [RF_O, RL_O, S_O, S_T, H_S_O, H_S_T];
+            if (inputs.some(isNaN) || RF_O <= 0 || S_O <= 0 || S_T <= 0 || H_S_O < 0 || H_S_T < 0) {
+                mostrarError("Por favor, ingresa valores numéricos positivos en todos los campos (la hidratación puede ser 0).");
+                return;
+            }
+
+            // 1. Componentes del Starter Original
+            const starterOriginal = calcularComponentesStarter(S_O, H_S_O);
+            const F_S_O = starterOriginal.flour; // Harina aportada por el starter original
+            const L_S_O = starterOriginal.liquid; // Líquido aportado por el starter original
+
+            // 2. Totales efectivos en la masa original (Definen la hidratación final de la masa)
+            const F_Total_O = RF_O + F_S_O; // Harina total efectiva en la masa
+            const L_Total_O = RL_O + L_S_O; // Líquido total efectivo en la masa
+
+            if (F_Total_O <= 0) {
+                 mostrarError("La harina total efectiva de la masa es cero o negativa. Revisa tus inputs.");
+                 return;
+            }
+            
+            // CORRECCIÓN: Cálculo preciso de la Hidratación Final de la Masa Deseada
+            const H_Dough = (L_Total_O / F_Total_O) * 100;
+
+            // 3. Componentes del Starter Objetivo (Nuevo)
+            const starterObjetivo = calcularComponentesStarter(S_T, H_S_T);
+            const F_S_T = starterObjetivo.flour; // Harina aportada por el starter objetivo
+            const L_S_T = starterObjetivo.liquid; // Líquido aportado por el starter objetivo
+
+            // 4. Calcular los nuevos requerimientos para la Harina y Líquido de la Receta (Main Dough)
+            const RF_Adjusted = F_Total_O - F_S_T;
+            const RL_Adjusted = L_Total_O - L_S_T;
+            
+            // Validar que los nuevos requerimientos no sean negativos
+            if (RF_Adjusted < 0 || RL_Adjusted < 0) {
+                mostrarError(`Receta Inviable: El starter objetivo (${S_T}g) aporta demasiados ingredientes. Reduce su cantidad o ajusta la receta original.`);
+                return;
+            }
+
+            // 5. Calcular los ajustes (Diferencia con la harina original)
+            const adjustmentHarina = RF_Adjusted - RF_O;
+            const adjustmentLiquido = RL_Adjusted - RL_O;
+            
+            // Función auxiliar para formatear los ajustes
+            const formatAdjustment = (value) => {
+                const sign = value >= 0 ? "+" : "";
+                const color = value >= 0 ? 'text-green-700' : 'text-red-700';
+                return `<span class="font-bold ${color}">${sign}${value.toFixed(1)} g</span>`;
+            };
+
+            // Mostrar Resultados
+            resultadoDiv.classList.remove("hidden");
+            resultadoDiv.innerHTML = `
+                <p class="font-bold text-lg mb-3 text-[color:var(--color-base)]">⚖️ AJUSTE DE RECETA EXITOSO</p>
+
+                <p class="text-sm font-semibold mb-3">La hidratación final de tu masa se mantendrá en: <strong class="text-xl text-[color:var(--color-base)]">${H_Dough.toFixed(2)} %</strong></p>
+                
+                <h3 class="font-extrabold text-base mb-2 border-b border-gray-300 pb-1">DATOS ORIGINALES DE LA MASA:</h3>
+                <div class="space-y-1 text-sm text-gray-700">
+                    <p>🌾 Harina Total Efectiva: <strong>${F_Total_O.toFixed(1)} g</strong> (${RF_O}g Receta + ${F_S_O.toFixed(1)}g Starter)</p>
+                    <p>💧 Líquido Total Efectivo: <strong>${L_Total_O.toFixed(1)} g</strong> (${RL_O}g Receta + ${L_S_O.toFixed(1)}g Starter)</p>
+                </div>
+
+                <h3 class="font-extrabold text-base mt-4 mb-2 border-b border-gray-300 pb-1">INGREDIENTES PRINCIPALES AJUSTADOS:</h3>
+                <div class="space-y-2">
+                    <div class="flex justify-between items-center text-gray-800">
+                        <span class="font-bold">Starter Objetivo (${H_S_T}%)</span>
+                        <span class="text-lg font-bold">${S_T.toFixed(1)} g</span>
+                    </div>
+                    <div class="flex justify-between items-center text-gray-800 border-t pt-2">
+                        <span class="font-bold">🌾 Harina principal</span>
+                        <span class="text-lg font-bold">${RF_Adjusted.toFixed(1)} g</span> 
+                        <span class="text-sm">${formatAdjustment(adjustmentHarina)}</span>
+                    </div>
+                    <div class="flex justify-between items-center text-gray-800">
+                        <span class="font-bold">💧 Líquido principal (Agua/Leche)</span>
+                        <span class="text-lg font-bold">${RL_Adjusted.toFixed(1)} g</span>
+                        <span class="text-sm">${formatAdjustment(adjustmentLiquido)}</span>
+                    </div>
+                </div>
+
+                <div class="mt-4 border-t border-gray-300 pt-3 text-sm text-gray-600">
+                    <p>Para mantener la consistencia original, debes usar ${RF_Adjusted.toFixed(1)}g de harina y ${RL_Adjusted.toFixed(1)}g de líquido en tu masa principal.</p>
+                </div>
+            `;
+        }
+    </script>
 </body>
 </html>
