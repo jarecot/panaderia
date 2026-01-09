@@ -213,26 +213,40 @@ function syncRendimientoYMultiplicador(origen) {
     if (piezas > 0 && pesoUnit > 0) {
       const newTotal = piezas * pesoUnit;
       const newMult = newTotal / base;
+
       pesoTotalInput.value = Math.round(newTotal);
-      pesoMultiplierInput.value = Math.round(newMult * 100) / 100;
+
+      // ✅ 3 decimales reales, sin redondeo destructivo
+      pesoMultiplierInput.value = Number(newMult.toFixed(3));
+
       calcularPesos();
     } else {
-      // si falta información, solo actualizar preview
       calcularPesos();
     }
+
   } else if (origen === "mult") {
     const mult = Math.max(0.0001, parseFloat(pesoMultiplierInput.value) || 1);
+
     const newTotal = Math.round(base * mult);
     pesoTotalInput.value = newTotal;
+
     if (pesoUnit > 0) {
       rendPiezasInput.value = Math.max(0, Math.round(newTotal / pesoUnit));
     }
+
     calcularPesos();
+
   } else if (origen === "pesoTotalManual") {
     const manual = Math.max(0, parseFloat(pesoTotalInput.value) || 0);
     const newMult = manual / base;
-    pesoMultiplierInput.value = Math.round(newMult * 100) / 100;
-    if (pesoUnit > 0) rendPiezasInput.value = Math.max(0, Math.round(manual / pesoUnit));
+
+    // ✅ 3 decimales reales
+    pesoMultiplierInput.value = Number(newMult.toFixed(3));
+
+    if (pesoUnit > 0) {
+      rendPiezasInput.value = Math.max(0, Math.round(manual / pesoUnit));
+    }
+
     calcularPesos();
   }
 }
@@ -788,3 +802,4 @@ async function init() {
 }
 
 window.addEventListener("DOMContentLoaded", init);
+
